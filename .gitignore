@@ -1,2 +1,33 @@
-/target
-.idea
+# Скомпилированные артефакты
+/target/
+**/target/
+
+# Секреты и окружение
+.env
+.blog_token
+*.pem
+*.key
+*.secret
+
+# Редакторы и IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Результаты тестов и бенчмарков
+*.prof
+*.raw
+*.log
+
+# Артефакты wasm-сборки
+*.wasm
+*.wasm32
+pkg/
+wasm-pack.log
+
+# Отладочные файлы
+debug/
+*.dSYM/
