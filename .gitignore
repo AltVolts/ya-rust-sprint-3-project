@@ -31,3 +31,5 @@ wasm-pack.log
 # Отладочные файлы
 debug/
 *.dSYM/
+
+**/.sqlx/

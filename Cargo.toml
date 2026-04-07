@@ -5,6 +5,7 @@ members = [
     "blog-client",
     "blog-cli",
     "blog-wasm",
+    "blog-proto",
 ]
 
 [workspace.dependencies]
