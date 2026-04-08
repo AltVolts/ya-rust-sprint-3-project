@@ -7,6 +7,10 @@ use std::sync::Arc;
 use tracing::info;
 
 mod infrastructure;
+mod presentation;
+mod data;
+mod application;
+mod domain;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
