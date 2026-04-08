@@ -2,8 +2,7 @@ syntax = "proto3";
 
 package blog;
 
-
-service AuthService {
+service BlogService {
   rpc Register(RegisterRequest) returns (User);
 
   rpc Login(LoginRequest) returns (LoginResponse);
