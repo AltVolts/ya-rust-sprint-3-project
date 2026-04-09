@@ -54,7 +54,7 @@ impl RegisterUser {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AuthUser {
+pub struct LoginUser {
     pub username: String,
     pub password: String,
 }
