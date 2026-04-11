@@ -5,6 +5,7 @@ use actix_web::{App, HttpServer, web};
 use infrastructure::logging;
 use std::sync::Arc;
 use tracing::info;
+use infrastructure::database;
 
 mod infrastructure;
 mod presentation;
@@ -18,6 +19,9 @@ async fn main() -> std::io::Result<()> {
     logging::init_logging();
 
     let cfg = Config::from_env().expect("Invalid configuration");
+
+    let pool = database::create_pool(&cfg.database_url).await.expect("Failed to create db_pool");
+    database::run_migrations(&pool).await.expect("Failed to run migrations");
 
     let addr = format!("{}:{}", cfg.host, cfg.port);
     info!("→ listening on http://{}", addr);
