@@ -1,0 +1,88 @@
+use crate::presentation::middleware::request_id::RequestId;
+use actix_service::{Service, Transform};
+use actix_web::dev::{ServiceRequest, ServiceResponse};
+use actix_web::http::header::{HeaderName, HeaderValue};
+use actix_web::{Error, HttpMessage};
+use futures_util::future::LocalBoxFuture;
+use std::future::{Ready, ready};
+use std::task::{Context, Poll};
+use std::time::Instant;
+use tracing::info;
+
+pub struct TimingMiddleware;
+
+impl<S, B> Transform<S, ServiceRequest> for TimingMiddleware
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+    S::Future: 'static,
+{
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type Transform = TimingService<S>;
+    type InitError = ();
+    type Future = Ready<Result<Self::Transform, Self::InitError>>;
+
+    fn new_transform(&self, service: S) -> Self::Future {
+        ready(Ok(TimingService { service }))
+    }
+}
+
+pub struct TimingService<S> {
+    service: S,
+}
+
+impl<S, B> Service<ServiceRequest> for TimingService<S>
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+    S::Future: 'static,
+{
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
+
+    fn poll_ready(&self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.service.poll_ready(cx)
+    }
+
+    fn call(&self, req: ServiceRequest) -> Self::Future {
+        let start = Instant::now();
+        let method = req.method().clone();
+        let path = req.path().to_owned();
+        let request_id = req.extensions().get::<RequestId>().map(|rid| rid.0.clone());
+
+        let fut = self.service.call(req);
+
+        Box::pin(async move {
+            let mut response = fut.await?;
+            let duration = start.elapsed();
+            if let Some(ref rid) = request_id {
+                info!(
+                    request_id = %rid,
+                    method = %method,
+                    path = %path,
+                    status = response.status().as_u16(),
+                    duration_ms = duration.as_millis(),
+                    "request completed"
+                );
+            } else {
+                info!(
+                    method = %method,
+                    path = %path,
+                    status = response.status().as_u16(),
+                    duration_ms = duration.as_millis(),
+                    "request completed"
+                );
+            }
+
+            let timing_header_value = format!("app;dur={}", duration.as_micros());
+            if let Ok(value) = HeaderValue::from_str(&timing_header_value) {
+                response
+                    .response_mut()
+                    .headers_mut()
+                    .insert(HeaderName::from_static("server-timing"), value);
+            }
+
+            Ok(response)
+        })
+    }
+}
