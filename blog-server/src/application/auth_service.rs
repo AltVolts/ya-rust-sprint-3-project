@@ -1,112 +1,75 @@
-use crate::application::AppError;
-use crate::domain::{DomainError, LoginUser, RegisterUser, User};
-use async_trait::async_trait;
-use uuid::Uuid;
+use std::sync::Arc;
 
-// Интерфейс репозитория пользователей (инфраструктурный слой)
-#[async_trait]
-pub trait UserRepository: Send + Sync {
-    async fn find_by_username(&self, username: &str) -> Result<Option<User>, AppError>;
-    async fn find_by_email(&self, email: &str) -> Result<Option<User>, AppError>;
-    async fn create(&self, user: &User) -> Result<(), AppError>;
+use tracing::instrument;
+
+use crate::application::error::AppError;
+use crate::data::user_repository::UserRepository;
+use crate::domain::DomainError;
+use crate::domain::user::User;
+use crate::infrastructure::security::{JwtService, hash_password, verify_password};
+
+#[derive(Clone)]
+pub struct AuthService<R: UserRepository + 'static> {
+    repo: Arc<R>,
+    jwt_service: JwtService,
 }
 
-// Интерфейс хеширования паролей
-#[async_trait]
-pub trait PasswordHasher: Send + Sync {
-    async fn hash(&self, password: &str) -> Result<String, AppError>;
-    async fn verify(&self, password: &str, hash: &str) -> Result<bool, AppError>;
-}
-
-#[async_trait]
-pub trait TokenService: Send + Sync {
-    async fn generate_token(&self, user_id: Uuid, username: &str) -> Result<String, AppError>;
-}
-
-// Сервис аутентификации
-pub struct AuthService<R, H, T> {
-    user_repo: R,
-    hasher: H,
-    token_service: T,
-}
-
-impl<R, H, T> AuthService<R, H, T> {
-    pub fn new(user_repo: R, hasher: H, token_service: T) -> Self {
-        Self {
-            user_repo,
-            hasher,
-            token_service,
-        }
-    }
-}
-
-impl<R, H, T> AuthService<R, H, T>
+impl<R> AuthService<R>
 where
-    R: UserRepository + Send + Sync,
-    H: PasswordHasher + Send + Sync,
-    T: TokenService + Send + Sync,
+    R: UserRepository + 'static,
 {
-    /// Регистрация нового пользователя
-    pub async fn register(&self, req: RegisterUser) -> Result<String, AppError> {
-        // Проверка, не занят ли username или email
-        if self
-            .user_repo
-            .find_by_username(&req.username)
-            .await?
-            .is_some()
-        {
-            return Err(
-                DomainError::UserAlreadyExists(format!("username: {}", req.username)).into(),
-            );
-        }
-        if self.user_repo.find_by_email(&req.email).await?.is_some() {
-            return Err(DomainError::UserAlreadyExists(format!("email: {}", req.email)).into());
-        }
-
-        // Хеширование пароля
-        let password_hash = self.hasher.hash(&req.password).await?;
-
-        // Создание пользователя (id будет сгенерирован БД, пока 0)
-        let new_id = Uuid::now_v7();
-        let user = User {
-            id: new_id,
-            username: req.username,
-            email: req.email,
-            password_hash,
-            created_at: chrono::Utc::now(),
-        };
-
-        // Сохранение в БД (репозиторий должен вернуть ошибку или сгенерировать id)
-        self.user_repo.create(&user).await?;
-
-        // Генерация токена (в реальности нужно получить реальный id после вставки)
-        let token = self
-            .token_service
-            .generate_token(new_id, &user.username)
-            .await?;
-        Ok(token)
+    pub fn new(repo: Arc<R>, jwt_service: JwtService) -> Self {
+        Self { repo, jwt_service }
     }
 
-    /// Вход пользователя
-    pub async fn login(&self, req: LoginUser) -> Result<String, AppError> {
-        let user = self
-            .user_repo
-            .find_by_username(&req.username)
-            .await?
-            .ok_or_else(|| DomainError::UserNotFound(req.username.clone()))?;
+    pub fn jwt_service(&self) -> &JwtService {
+        &self.jwt_service
+    }
 
-        let verified = self
-            .hasher
-            .verify(&req.password, &user.password_hash)
-            .await?;
-        if !verified {
-            return Err(DomainError::InvalidCredentials.into());
+    pub async fn get_user(&self, id: uuid::Uuid) -> Result<User, AppError> {
+        self.repo
+            .find_by_id(id)
+            .await
+            .map_err(AppError::from)?
+            .ok_or_else(|| DomainError::UserNotFound(format!("user {}", id)))
+            .map_err(AppError::from)
+    }
+
+    #[instrument(skip(self))]
+    pub async fn register(
+        &self,
+        username: String,
+        email: String,
+        password: String,
+    ) -> Result<(User, String), AppError> {
+        let hash = hash_password(&password).map_err(|err| AppError::Hash(err.to_string()))?;
+        let user = User::new(username, email.to_lowercase(), hash);
+        let user = self.repo.create(user).await.map_err(AppError::from)?;
+
+        let jwt_token = self
+            .jwt_service
+            .generate_token(user.id, &user.username)
+            .map_err(|err| AppError::Internal(err.to_string()))?;
+        Ok((user, jwt_token))
+    }
+
+    #[instrument(skip(self))]
+    pub async fn login(&self, username: &str, password: &str) -> Result<String, AppError> {
+        let user = self
+            .repo
+            .find_by_username(&username)
+            .await
+            .map_err(AppError::from)?
+            .ok_or_else(|| AppError::Unauthorized)?;
+
+        let valid =
+            verify_password(password, &user.password_hash).map_err(|_| AppError::Unauthorized)?;
+        if !valid {
+            return Err(AppError::Unauthorized);
         }
 
-        let token = self
-            .token_service
+        self.jwt_service
             .generate_token(user.id, &user.username)
-            .await?;
-        Ok(token)
+            .map_err(|err| AppError::Internal(err.to_string()))
     }
 }

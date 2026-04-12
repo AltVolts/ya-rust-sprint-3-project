@@ -16,6 +16,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
         web::scope("/api")
             // Публичные маршруты (без аутентификации)
             .service(http_handlers::public::health)
+            .service(http_handlers::public::register)
+            .service(http_handlers::public::login)
             // Защищённые маршруты (с Bearer-аутентификацией)
             .service(
                 web::scope("")

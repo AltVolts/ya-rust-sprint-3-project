@@ -12,7 +12,7 @@ async-trait = "0.1"
 actix-web-httpauth = "0.8.2"
 
 argon2 = "0.5"
-jsonwebtoken = "10.3.0"
+jsonwebtoken = { version = "10.3.0", features = ["rust_crypto"] }
 rand_core = { version = "0.6", features = ["getrandom"] }
 
 once_cell = "1"

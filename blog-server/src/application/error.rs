@@ -21,7 +21,10 @@ pub enum AppError {
     Config(String),
 
     #[error("Internal server error")]
-    Internal,
+    Internal(String),
+
+    #[error("unauthorized")]
+    Unauthorized,
 }
 
 // impl AppError {

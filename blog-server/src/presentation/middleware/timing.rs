@@ -74,7 +74,7 @@ where
                 );
             }
 
-            let timing_header_value = format!("app;dur={}", duration.as_micros());
+            let timing_header_value = format!("app;dur={}", duration.as_millis());
             if let Ok(value) = HeaderValue::from_str(&timing_header_value) {
                 response
                     .response_mut()
