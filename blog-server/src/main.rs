@@ -1,12 +1,13 @@
 use crate::infrastructure::Config;
-use crate::presentation::{RequestIdMiddleware, TimingMiddleware};
+use crate::presentation::{auth, http_handlers, JwtAuthMiddleware, RequestIdMiddleware, TimingMiddleware};
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
-use actix_web::{App, HttpServer};
+use actix_web::{web, App, HttpServer};
+use actix_web_httpauth::middleware::HttpAuthentication;
 use infrastructure::database;
 use infrastructure::logging;
-use presentation::http_handlers;
 use tracing::info;
+use crate::infrastructure::security::JwtService;
 
 mod application;
 mod data;
@@ -24,10 +25,12 @@ async fn main() -> std::io::Result<()> {
     let pool = database::create_pool(&cfg.database_url)
         .await
         .expect("Failed to create db_pool");
+
     database::run_migrations(&pool)
         .await
         .expect("Failed to run migrations");
 
+    let auth = HttpAuthentication::bearer(auth::jwt_validator);
     let addr = format!("{}:{}", cfg.host, cfg.port);
     info!("→ listening on http://{}", addr);
 
@@ -47,8 +50,15 @@ async fn main() -> std::io::Result<()> {
             .wrap(TimingMiddleware)
             .wrap(RequestIdMiddleware)
             .wrap(Logger::default())
-            // .app_data(cfg.clone())
-            .configure(http_handlers::configure)
+            .service(
+                web::scope("/api")
+                    .service(http_handlers::public::health)
+                    .service(
+                        web::scope("")
+                            .wrap(auth.clone())
+                            .service(http_handlers::protected::health_protected)
+                    )
+            )
     })
     .bind(addr)?
     .run()
