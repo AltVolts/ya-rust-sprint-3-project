@@ -1,5 +1,5 @@
-use crate::domain::{User, RegisterUser, LoginUser, DomainError};
 use crate::application::AppError;
+use crate::domain::{DomainError, LoginUser, RegisterUser, User};
 use async_trait::async_trait;
 use uuid::Uuid;
 
@@ -49,8 +49,15 @@ where
     /// Регистрация нового пользователя
     pub async fn register(&self, req: RegisterUser) -> Result<String, AppError> {
         // Проверка, не занят ли username или email
-        if self.user_repo.find_by_username(&req.username).await?.is_some() {
-            return Err(DomainError::UserAlreadyExists(format!("username: {}", req.username)).into());
+        if self
+            .user_repo
+            .find_by_username(&req.username)
+            .await?
+            .is_some()
+        {
+            return Err(
+                DomainError::UserAlreadyExists(format!("username: {}", req.username)).into(),
+            );
         }
         if self.user_repo.find_by_email(&req.email).await?.is_some() {
             return Err(DomainError::UserAlreadyExists(format!("email: {}", req.email)).into());
@@ -73,23 +80,33 @@ where
         self.user_repo.create(&user).await?;
 
         // Генерация токена (в реальности нужно получить реальный id после вставки)
-        let token = self.token_service.generate_token(new_id, &user.username).await?;
+        let token = self
+            .token_service
+            .generate_token(new_id, &user.username)
+            .await?;
         Ok(token)
     }
 
     /// Вход пользователя
     pub async fn login(&self, req: LoginUser) -> Result<String, AppError> {
-        let user = self.user_repo
+        let user = self
+            .user_repo
             .find_by_username(&req.username)
             .await?
             .ok_or_else(|| DomainError::UserNotFound(req.username.clone()))?;
 
-        let verified = self.hasher.verify(&req.password, &user.password_hash).await?;
+        let verified = self
+            .hasher
+            .verify(&req.password, &user.password_hash)
+            .await?;
         if !verified {
             return Err(DomainError::InvalidCredentials.into());
         }
 
-        let token = self.token_service.generate_token(user.id, &user.username).await?;
+        let token = self
+            .token_service
+            .generate_token(user.id, &user.username)
+            .await?;
         Ok(token)
     }
 }

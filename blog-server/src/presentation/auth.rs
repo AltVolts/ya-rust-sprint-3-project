@@ -1,11 +1,11 @@
-use actix_web::dev::{Payload, ServiceRequest};
-use actix_web::{error::ErrorUnauthorized, web, Error, FromRequest, HttpMessage, HttpRequest};
-use actix_web::error::ErrorInternalServerError;
-use actix_web_httpauth::extractors::bearer::BearerAuth;
-use actix_web_httpauth::extractors::basic::{BasicAuth, self};
-use futures_util::future::{ready, Ready};
-use uuid::Uuid;
 use crate::infrastructure::security::JwtService;
+use actix_web::dev::{Payload, ServiceRequest};
+use actix_web::error::ErrorInternalServerError;
+use actix_web::{Error, FromRequest, HttpMessage, HttpRequest, error::ErrorUnauthorized, web};
+use actix_web_httpauth::extractors::basic::{self, BasicAuth};
+use actix_web_httpauth::extractors::bearer::BearerAuth;
+use futures_util::future::{Ready, ready};
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct AuthenticatedUser {

@@ -1,13 +1,12 @@
 use crate::infrastructure::Config;
-use crate::presentation::{auth, http_handlers, JwtAuthMiddleware, RequestIdMiddleware, TimingMiddleware};
+use crate::infrastructure::security::JwtService;
+use crate::presentation::{RequestIdMiddleware, TimingMiddleware, http_handlers};
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
-use actix_web::{web, App, HttpServer};
-use actix_web_httpauth::middleware::HttpAuthentication;
+use actix_web::{App, HttpServer, web};
 use infrastructure::database;
 use infrastructure::logging;
 use tracing::info;
-use crate::infrastructure::security::JwtService;
 
 mod application;
 mod data;
@@ -30,12 +29,14 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to run migrations");
 
-    let auth = HttpAuthentication::bearer(auth::jwt_validator);
+    let jwt_service = JwtService::new(&cfg.jwt_secret);
+    let jwt_service_data = web::Data::new(jwt_service);
     let addr = format!("{}:{}", cfg.host, cfg.port);
     info!("→ listening on http://{}", addr);
 
     HttpServer::new(move || {
         App::new()
+            .app_data(jwt_service_data.clone())
             .wrap(
                 Cors::default()
                     .allowed_origin(&cfg.cors_origin)
@@ -50,15 +51,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(TimingMiddleware)
             .wrap(RequestIdMiddleware)
             .wrap(Logger::default())
-            .service(
-                web::scope("/api")
-                    .service(http_handlers::public::health)
-                    .service(
-                        web::scope("")
-                            .wrap(auth.clone())
-                            .service(http_handlers::protected::health_protected)
-                    )
-            )
+            .configure(presentation::configure)
     })
     .bind(addr)?
     .run()

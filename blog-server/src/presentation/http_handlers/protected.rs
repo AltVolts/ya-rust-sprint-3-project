@@ -1,10 +1,9 @@
-use actix_web::{get, web, HttpResponse, Responder, Scope};
-use chrono::Utc;
 use crate::presentation::http_handlers::HealthResponse;
+use actix_web::{HttpResponse, Responder, Scope, get, web};
+use chrono::Utc;
 
 pub fn scope() -> Scope {
-    web::scope("")
-        .service(health_protected)
+    web::scope("").service(health_protected)
 }
 
 #[get("/health_protected")]

@@ -1,14 +1,6 @@
-use actix_web::{get, web, HttpResponse, Responder, Scope};
-use chrono::Utc;
 use crate::presentation::http_handlers::HealthResponse;
-
-pub fn scope() -> Scope {
-    web::scope("")
-        .service(health)
-        // .service(register)
-        // .service(login)
-        // .service(token)
-}
+use actix_web::{HttpResponse, Responder, Scope, get, web};
+use chrono::Utc;
 
 #[get("/health")]
 pub async fn health() -> impl Responder {

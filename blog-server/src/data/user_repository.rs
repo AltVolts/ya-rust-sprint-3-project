@@ -3,7 +3,7 @@ use sqlx::{PgPool, Row};
 use tracing::{error, info};
 use uuid::Uuid;
 
-use crate::domain::{user::User, DomainError};
+use crate::domain::{DomainError, user::User};
 
 #[async_trait]
 pub trait UserRepository: Send + Sync {
@@ -104,4 +104,3 @@ impl UserRepository for PostgresUserRepository {
         }))
     }
 }
-

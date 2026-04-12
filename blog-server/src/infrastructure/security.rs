@@ -1,17 +1,15 @@
 use argon2::{
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
 };
 use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-
 const TOKEN_LIFETIME_HOURS: i64 = 24;
 const TOKEN_EXPIRATION_LEEWAY: u64 = 60;
-
 
 #[derive(Clone)]
 pub struct JwtService {
@@ -20,10 +18,16 @@ pub struct JwtService {
 
 impl JwtService {
     pub fn new(secret: impl Into<String>) -> Self {
-        Self { secret: secret.into() }
+        Self {
+            secret: secret.into(),
+        }
     }
 
-    pub fn generate_token(&self, user_id: Uuid, username: String) -> Result<String, jsonwebtoken::errors::Error> {
+    pub fn generate_token(
+        &self,
+        user_id: Uuid,
+        username: String,
+    ) -> Result<String, jsonwebtoken::errors::Error> {
         let claims = Claims {
             sub: user_id.to_string(),
             username,
