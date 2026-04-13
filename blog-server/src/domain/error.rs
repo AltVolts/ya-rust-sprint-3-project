@@ -1,4 +1,5 @@
 use thiserror::Error;
+use uuid::Uuid;
 
 #[derive(Debug, Error, PartialEq)]
 pub enum DomainError {
@@ -12,10 +13,10 @@ pub enum DomainError {
     InvalidCredentials,
 
     #[error("Post not found: {0}")]
-    PostNotFound(i32),
+    PostNotFound(Uuid),
 
     #[error("Forbidden: user {user_id} is not the author of post {post_id}")]
-    Forbidden { user_id: i32, post_id: i32 },
+    Forbidden { user_id: Uuid, post_id: Uuid },
 
     #[error("Validation error: {0}")]
     Validation(String),

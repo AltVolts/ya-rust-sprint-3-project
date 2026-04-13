@@ -5,7 +5,7 @@ use actix_web::{HttpResponse, ResponseError, http};
 use serde_json::json;
 
 impl ResponseError for AppError {
-    fn status_code(&self) -> http::StatusCode {
+    fn status_code(&self) -> StatusCode {
         match self {
             AppError::Domain(domain_err) => match domain_err {
                 DomainError::UserNotFound(_) => StatusCode::NOT_FOUND,
@@ -28,6 +28,13 @@ impl ResponseError for AppError {
     fn error_response(&self) -> HttpResponse {
         let status = self.status_code();
         let error_message = self.to_string();
+
+        match self {
+            AppError::Database(e) | AppError::Hash(e) | AppError::Config(e) | AppError::Internal(e) => {
+                tracing::error!("Internal error: {}", e);
+            }
+            _ => {}
+        }
 
         let client_message = match self {
             AppError::Database(_)

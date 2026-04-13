@@ -7,10 +7,11 @@ pub mod http_handlers;
 mod middleware;
 
 pub use middleware::*;
+use middleware::jwt;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
     // Создаём middleware аутентификации прямо здесь
-    let auth_middleware = HttpAuthentication::bearer(auth::jwt_validator);
+    let auth_middleware = HttpAuthentication::bearer(jwt::jwt_validator);
 
     cfg.service(
         web::scope("/api")
