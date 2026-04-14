@@ -1,7 +1,6 @@
 use actix_web::web;
 use actix_web_httpauth::middleware::HttpAuthentication;
 
-pub mod auth;
 mod error;
 pub mod http_handlers;
 mod middleware;

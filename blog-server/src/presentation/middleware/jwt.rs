@@ -1,10 +1,28 @@
 use crate::infrastructure::security::JwtService;
-use crate::presentation::auth::AuthenticatedUser;
-use actix_web::dev::ServiceRequest;
+use actix_web::dev::{Payload, ServiceRequest};
 use actix_web::error::{ErrorInternalServerError, ErrorUnauthorized};
-use actix_web::{Error, HttpMessage, web};
+use actix_web::{Error, HttpMessage, web, FromRequest, HttpRequest};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
+use futures_util::future::{ready, Ready};
 use uuid::Uuid;
+
+#[derive(Debug, Clone)]
+pub struct AuthenticatedUser {
+    pub id: Uuid,
+    pub username: String,
+}
+
+impl FromRequest for AuthenticatedUser {
+    type Error = Error;
+    type Future = Ready<Result<Self, Self::Error>>;
+
+    fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
+        match req.extensions().get::<AuthenticatedUser>() {
+            Some(user) => ready(Ok(user.clone())),
+            None => ready(Err(ErrorUnauthorized("missing authenticated user"))),
+        }
+    }
+}
 
 pub async fn jwt_validator(
     req: ServiceRequest,

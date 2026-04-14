@@ -3,7 +3,6 @@ use crate::application::blog_service::BlogService;
 use crate::data::post_repository::PostgresPostRepository;
 use crate::domain::{CreatePost, GetListPosts, UpdatePost};
 use crate::presentation::RequestId;
-use crate::presentation::auth::AuthenticatedUser;
 use crate::presentation::http_handlers::HealthResponse;
 use actix_web::{
     HttpMessage, HttpRequest, HttpResponse, Responder, Scope, delete, get, post, put, web,
@@ -11,6 +10,7 @@ use actix_web::{
 use chrono::Utc;
 use tracing::info;
 use uuid::Uuid;
+use crate::presentation::middleware::jwt::AuthenticatedUser;
 
 pub fn scope() -> Scope {
     web::scope("")
