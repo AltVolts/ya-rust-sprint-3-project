@@ -1,6 +1,6 @@
+pub(crate) mod jwt;
 mod request_id;
 mod timing;
-pub(crate) mod jwt;
 
-pub use request_id::{RequestIdMiddleware, RequestId};
+pub use request_id::{RequestId, RequestIdMiddleware};
 pub use timing::TimingMiddleware;

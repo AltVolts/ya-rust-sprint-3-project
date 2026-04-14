@@ -1,4 +1,3 @@
-use std::fmt;
 use thiserror::Error;
 
 use crate::domain::DomainError;
@@ -26,17 +25,3 @@ pub enum AppError {
     #[error("unauthorized")]
     Unauthorized,
 }
-
-// impl AppError {
-//     pub fn database<E: fmt::Display>(err: E) -> Self {
-//         AppError::Database(err.to_string())
-//     }
-//
-//     pub fn hash<E: fmt::Display>(err: E) -> Self {
-//         AppError::Hash(err.to_string())
-//     }
-//
-//     pub fn jwt<E: fmt::Display>(err: E) -> Self {
-//         AppError::Jwt(err.to_string())
-//     }
-// }

@@ -57,10 +57,10 @@ where
     pub async fn login(&self, username: &str, password: &str) -> Result<String, AppError> {
         let user = self
             .repo
-            .find_by_username(&username)
+            .find_by_username(username)
             .await
             .map_err(AppError::from)?
-            .ok_or_else(|| AppError::Unauthorized)?;
+            .ok_or(AppError::Unauthorized)?;
 
         let valid =
             verify_password(password, &user.password_hash).map_err(|_| AppError::Unauthorized)?;

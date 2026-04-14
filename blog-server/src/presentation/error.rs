@@ -1,7 +1,7 @@
 use crate::application::AppError;
 use crate::domain::DomainError;
 use actix_web::http::StatusCode;
-use actix_web::{HttpResponse, ResponseError, http};
+use actix_web::{HttpResponse, ResponseError};
 use serde_json::json;
 
 impl ResponseError for AppError {
@@ -30,7 +30,10 @@ impl ResponseError for AppError {
         let error_message = self.to_string();
 
         match self {
-            AppError::Database(e) | AppError::Hash(e) | AppError::Config(e) | AppError::Internal(e) => {
+            AppError::Database(e)
+            | AppError::Hash(e)
+            | AppError::Config(e)
+            | AppError::Internal(e) => {
                 tracing::error!("Internal error: {}", e);
             }
             _ => {}

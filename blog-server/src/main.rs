@@ -1,8 +1,10 @@
 use crate::application::auth_service::AuthService;
+use crate::application::blog_service::BlogService;
+use crate::data::post_repository::PostgresPostRepository;
 use crate::data::user_repository::PostgresUserRepository;
 use crate::infrastructure::Config;
 use crate::infrastructure::security::JwtService;
-use crate::presentation::{RequestIdMiddleware, TimingMiddleware, http_handlers};
+use crate::presentation::{RequestIdMiddleware, TimingMiddleware};
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{App, HttpServer, web};
@@ -33,11 +35,16 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to run migrations");
 
     let user_repo = Arc::new(PostgresUserRepository::new(pool.clone()));
+    let post_repo = Arc::new(PostgresPostRepository::new(pool.clone()));
 
     let jwt_service = JwtService::new(&cfg.jwt_secret);
     let auth_service = AuthService::new(user_repo.clone(), jwt_service);
 
+    let blog_service = BlogService::new(post_repo.clone());
+
     let jwt_service_data = web::Data::new(auth_service.jwt_service().clone());
+    let auth_service_data = web::Data::new(auth_service);
+    let blog_service_data = web::Data::new(blog_service);
 
     let addr = format!("{}:{}", cfg.host, cfg.port);
     info!("→ listening on http://{}", addr);
@@ -45,7 +52,8 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(jwt_service_data.clone())
-            .app_data(web::Data::new(auth_service.clone()))
+            .app_data(auth_service_data.clone())
+            .app_data(blog_service_data.clone())
             .wrap(
                 Cors::default()
                     .allowed_origin(&cfg.cors_origin)

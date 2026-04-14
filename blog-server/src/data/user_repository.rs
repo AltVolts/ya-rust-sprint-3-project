@@ -48,11 +48,11 @@ impl UserRepository for PostgresUserRepository {
             VALUES ($1, $2, $3, $4, $5)
             "#,
         )
-        .bind(&user.id)
+        .bind(user.id)
         .bind(&user.username)
         .bind(&user.email)
         .bind(&user.password_hash)
-        .bind(&user.created_at)
+        .bind(user.created_at)
         .execute(&self.pool)
         .await
         .map_err(|e| {

@@ -1,7 +1,7 @@
+use crate::domain::{DomainError, PaginatedPosts, Post};
 use async_trait::async_trait;
 use sqlx::PgPool;
 use uuid::Uuid;
-use crate::domain::{DomainError, PaginatedPosts, Post};
 
 impl From<sqlx::Error> for DomainError {
     fn from(err: sqlx::Error) -> Self {
@@ -24,7 +24,9 @@ pub struct PostgresPostRepository {
 }
 
 impl PostgresPostRepository {
-    pub fn new(pool: PgPool) -> Self { Self{ pool } }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
 }
 
 #[async_trait]
@@ -44,8 +46,8 @@ impl PostRepository for PostgresPostRepository {
             post.created_at,
             post.updated_at,
         )
-            .fetch_one(&self.pool)
-            .await?;
+        .fetch_one(&self.pool)
+        .await?;
         Ok(post)
     }
 
@@ -59,8 +61,8 @@ impl PostRepository for PostgresPostRepository {
             "#,
             id
         )
-            .fetch_optional(&self.pool)
-            .await?;
+        .fetch_optional(&self.pool)
+        .await?;
         Ok(post)
     }
 
@@ -80,9 +82,9 @@ impl PostRepository for PostgresPostRepository {
             post.updated_at,
             post.id,
         )
-            .fetch_optional(&self.pool)
-            .await?
-            .ok_or_else(|| DomainError::PostNotFound(post.id))?;
+        .fetch_optional(&self.pool)
+        .await?
+        .ok_or(DomainError::PostNotFound(post.id))?;
         Ok(updated)
     }
 
@@ -116,9 +118,9 @@ impl PostRepository for PostgresPostRepository {
             limit,
             offset,
         )
-            .fetch_all(&mut *tx)
-            .await?;
+        .fetch_all(&mut *tx)
+        .await?;
         tx.commit().await?;
-        Ok(PaginatedPosts { posts, total})
+        Ok(PaginatedPosts { posts, total })
     }
 }

@@ -1,10 +1,10 @@
-use actix_web::dev::ServiceRequest;
-use actix_web_httpauth::extractors::bearer::BearerAuth;
-use actix_web::{web, Error, HttpMessage};
-use actix_web::error::{ErrorInternalServerError, ErrorUnauthorized};
-use uuid::Uuid;
 use crate::infrastructure::security::JwtService;
 use crate::presentation::auth::AuthenticatedUser;
+use actix_web::dev::ServiceRequest;
+use actix_web::error::{ErrorInternalServerError, ErrorUnauthorized};
+use actix_web::{Error, HttpMessage, web};
+use actix_web_httpauth::extractors::bearer::BearerAuth;
+use uuid::Uuid;
 
 pub async fn jwt_validator(
     req: ServiceRequest,
@@ -14,7 +14,7 @@ pub async fn jwt_validator(
         Some(service) => service,
         None => {
             let err = ErrorInternalServerError("JwtService not found");
-            return Err((err.into(), req));
+            return Err((err, req));
         }
     };
 
@@ -23,14 +23,14 @@ pub async fn jwt_validator(
         Ok(claims) => claims,
         Err(_) => {
             let err = ErrorUnauthorized("Invalid token");
-            return Err((err.into(), req));
+            return Err((err, req));
         }
     };
     let user_id = match Uuid::parse_str(&claims.sub) {
         Ok(id) => id,
         Err(_) => {
             let err = ErrorUnauthorized("Invalid token subject");
-            return Err((err.into(), req));
+            return Err((err, req));
         }
     };
 

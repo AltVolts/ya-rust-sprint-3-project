@@ -6,8 +6,8 @@ mod error;
 pub mod http_handlers;
 mod middleware;
 
-pub use middleware::*;
 use middleware::jwt;
+pub use middleware::*;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
     // Создаём middleware аутентификации прямо здесь

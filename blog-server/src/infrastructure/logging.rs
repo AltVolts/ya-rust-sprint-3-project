@@ -4,7 +4,7 @@ pub fn init_logging() {
     tracing_subscriber::registry()
         .with(
             EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "actix_web=warning,blog_server=info".into()),
+                .unwrap_or_else(|_| "actix_web=warn,blog_server=info".into()),
         )
         .with(
             tracing_subscriber::fmt::layer()
