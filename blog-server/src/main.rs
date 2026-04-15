@@ -4,13 +4,19 @@ use crate::data::post_repository::PostgresPostRepository;
 use crate::data::user_repository::PostgresUserRepository;
 use crate::infrastructure::Config;
 use crate::infrastructure::security::JwtService;
-use crate::presentation::{RequestIdMiddleware, TimingMiddleware};
+use crate::presentation::http_handlers::auth::health;
+use crate::presentation::http_handlers::posts::{
+    create_post, delete_post, get_post, list_posts, update_post,
+};
+use crate::presentation::{RequestIdMiddleware, TimingMiddleware, http_handlers, middleware, BlogServiceImpl};
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{App, HttpServer, web};
+use actix_web_httpauth::middleware::HttpAuthentication;
 use infrastructure::database;
 use infrastructure::logging;
 use std::sync::Arc;
+use tonic::transport::Server;
 use tracing::info;
 
 mod application;
@@ -43,13 +49,19 @@ async fn main() -> std::io::Result<()> {
     let blog_service = BlogService::new(post_repo.clone());
 
     let jwt_service_data = web::Data::new(auth_service.jwt_service().clone());
-    let auth_service_data = web::Data::new(auth_service);
-    let blog_service_data = web::Data::new(blog_service);
+    let auth_service_data = web::Data::new(auth_service.clone());
+    let blog_service_data = web::Data::new(blog_service.clone());
 
-    let addr = format!("{}:{}", cfg.host, cfg.port);
-    info!("→ listening on http://{}", addr);
+    let auth = HttpAuthentication::bearer(middleware::jwt::jwt_validator);
 
-    HttpServer::new(move || {
+    let http_addr = format!("{}:{}", cfg.host, cfg.port);
+    info!("→ HTTP server listening on http://{}", http_addr);
+
+    let grpc_addr = format!("{}:{}", cfg.host, cfg.grpc_port);
+    let grpc_auth_service = auth_service.clone();
+    let grpc_blog_service = blog_service.clone();
+
+    let http_server = HttpServer::new(move || {
         App::new()
             .app_data(jwt_service_data.clone())
             .app_data(auth_service_data.clone())
@@ -57,7 +69,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(
                 Cors::default()
                     .allowed_origin(&cfg.cors_origin)
-                    .allowed_methods(vec!["GET", "POST", "OPTIONS"])
+                    .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
                     .allowed_headers(vec![
                         actix_web::http::header::CONTENT_TYPE,
                         actix_web::http::header::AUTHORIZATION,
@@ -68,9 +80,46 @@ async fn main() -> std::io::Result<()> {
             .wrap(TimingMiddleware)
             .wrap(RequestIdMiddleware)
             .wrap(Logger::default())
-            .configure(presentation::configure)
+            .service(
+                web::scope("/api")
+                    .service(health)
+                    .service(http_handlers::auth::auth_scope())
+                    .service(
+                        web::scope("/posts")
+                            .route("", web::get().to(list_posts))
+                            .route("", web::post().to(create_post).wrap(auth.clone()))
+                            .route("/{id}", web::get().to(get_post))
+                            .route("/{id}", web::put().to(update_post).wrap(auth.clone()))
+                            .route("/{id}", web::delete().to(delete_post).wrap(auth.clone())),
+                    ),
+            )
     })
-    .bind(addr)?
-    .run()
-    .await
+    .bind(http_addr)?
+    .run();
+
+    let grpc_service = BlogServiceImpl::new(
+        Arc::new(grpc_auth_service),
+        Arc::new(grpc_blog_service),
+    );
+
+    let grpc_server = Server::builder()
+        .add_service(blog_proto::blog_service_server::BlogServiceServer::new(grpc_service))
+        .serve(grpc_addr.parse().expect("Invalid gRPC address"));
+
+    info!("→ gRPC server listening on http://{}", grpc_addr);
+
+    tokio::select! {
+        res = http_server => {
+            if let Err(e) = res {
+                eprintln!("HTTP server error: {}", e);
+            }
+        }
+        res = grpc_server => {
+            if let Err(e) = res {
+                eprintln!("gRPC server error: {}", e);
+            }
+        }
+    }
+
+    Ok(())
 }

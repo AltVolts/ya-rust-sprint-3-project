@@ -1,7 +1,7 @@
 use serde::Serialize;
 
-pub mod protected;
-pub mod public;
+pub mod auth;
+pub mod posts;
 
 #[derive(Debug, Serialize)]
 pub struct HealthResponse {

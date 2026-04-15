@@ -1,9 +1,9 @@
 use crate::infrastructure::security::JwtService;
 use actix_web::dev::{Payload, ServiceRequest};
 use actix_web::error::{ErrorInternalServerError, ErrorUnauthorized};
-use actix_web::{Error, HttpMessage, web, FromRequest, HttpRequest};
+use actix_web::{Error, FromRequest, HttpMessage, HttpRequest, web};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use futures_util::future::{ready, Ready};
+use futures_util::future::{Ready, ready};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]

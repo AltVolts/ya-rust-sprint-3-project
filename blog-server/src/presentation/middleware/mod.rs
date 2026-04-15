@@ -1,4 +1,4 @@
-pub(crate) mod jwt;
+pub mod jwt;
 mod request_id;
 mod timing;
 

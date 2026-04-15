@@ -3,13 +3,13 @@ use crate::application::auth_service::AuthService;
 use crate::data::user_repository::PostgresUserRepository;
 use crate::domain::{LoginUser, RegisterUser};
 use crate::presentation::http_handlers::HealthResponse;
-use actix_web::{HttpResponse, Responder, get, post, web};
+use actix_web::{HttpResponse, Responder, Scope, get, post, web};
 use chrono::Utc;
 use tracing::info;
 
-// pub fn scope() -> Scope {
-//     web::scope("/auth").service(register)
-// }
+pub fn auth_scope() -> Scope {
+    web::scope("/auth").service(register).service(login)
+}
 
 #[get("/health")]
 pub async fn health() -> impl Responder {
@@ -19,7 +19,7 @@ pub async fn health() -> impl Responder {
     })
 }
 
-#[post("/auth/register")]
+#[post("/register")]
 pub async fn register(
     service: web::Data<AuthService<PostgresUserRepository>>,
     payload: web::Json<RegisterUser>,
@@ -40,7 +40,7 @@ pub async fn register(
     })))
 }
 
-#[post("/auth/login")]
+#[post("/login")]
 pub async fn login(
     service: web::Data<AuthService<PostgresUserRepository>>,
     payload: web::Json<LoginUser>,

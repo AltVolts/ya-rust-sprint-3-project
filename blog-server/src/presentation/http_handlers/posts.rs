@@ -3,34 +3,12 @@ use crate::application::blog_service::BlogService;
 use crate::data::post_repository::PostgresPostRepository;
 use crate::domain::{CreatePost, GetListPosts, UpdatePost};
 use crate::presentation::RequestId;
-use crate::presentation::http_handlers::HealthResponse;
-use actix_web::{
-    HttpMessage, HttpRequest, HttpResponse, Responder, Scope, delete, get, post, put, web,
-};
-use chrono::Utc;
+
+use crate::presentation::middleware::jwt::AuthenticatedUser;
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, web};
 use tracing::info;
 use uuid::Uuid;
-use crate::presentation::middleware::jwt::AuthenticatedUser;
 
-pub fn scope() -> Scope {
-    web::scope("")
-        .service(health_protected)
-        .service(create_post)
-        .service(get_post)
-        .service(list_posts)
-        .service(update_post)
-        .service(delete_post)
-}
-
-#[get("/health_protected")]
-pub async fn health_protected() -> impl Responder {
-    HttpResponse::Ok().json(HealthResponse {
-        status: "ok",
-        timestamp: Utc::now().to_rfc3339(),
-    })
-}
-
-#[post("/posts")]
 pub async fn create_post(
     req: HttpRequest,
     user: AuthenticatedUser,
@@ -48,7 +26,6 @@ pub async fn create_post(
     Ok(HttpResponse::Created().json(post))
 }
 
-#[get("/posts/{id}")]
 pub async fn get_post(
     service: web::Data<BlogService<PostgresPostRepository>>,
     path: web::Path<Uuid>,
@@ -58,7 +35,6 @@ pub async fn get_post(
     Ok(HttpResponse::Ok().json(post))
 }
 
-#[get("/posts")]
 pub async fn list_posts(
     service: web::Data<BlogService<PostgresPostRepository>>,
     payload: web::Json<GetListPosts>,
@@ -76,7 +52,6 @@ pub async fn list_posts(
     })))
 }
 
-#[put("/posts/{id}")]
 pub async fn update_post(
     req: HttpRequest,
     user: AuthenticatedUser,
@@ -97,7 +72,6 @@ pub async fn update_post(
     Ok(HttpResponse::Ok().json(post))
 }
 
-#[delete("/posts/{id}")]
 pub async fn delete_post(
     req: HttpRequest,
     user: AuthenticatedUser,

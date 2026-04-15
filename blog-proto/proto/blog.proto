@@ -15,7 +15,7 @@ service BlogService {
 
   rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
 
-  rpc GetPosts(GetPostsRequest) returns (PostsResponse);
+  rpc ListPosts(ListPostsRequest) returns (ListPostsResponse);
 }
 
 message RegisterRequest {
@@ -42,7 +42,6 @@ message LoginResponse {
 message CreatePostRequest {
   string title = 1;
   string content = 2;
-  repeated string tags = 3;
 }
 
 message GetPostRequest {
@@ -51,10 +50,8 @@ message GetPostRequest {
 
 message UpdatePostRequest {
   string id = 1;
-
   optional string title = 2;
   optional string content = 3;
-  repeated string tags = 4;
 }
 
 message DeletePostRequest {
@@ -65,13 +62,14 @@ message DeletePostResponse {
   bool success = 1;
 }
 
-message GetPostsRequest {
-  string author_id = 1;
-  repeated string tags = 2;
+message ListPostsRequest {
+  int64 limit = 1;
+  int64 offset = 2;
 }
 
-message PostsResponse {
+message ListPostsResponse {
   repeated Post posts = 1;
+  int64 total = 2;
 }
 
 message Post {
@@ -80,6 +78,5 @@ message Post {
   string content = 3;
   string author_id = 4;
   int64 created_at = 5;
-  int64 updated_ap = 6;
-  repeated string tags = 7;
+  int64 updated_at = 6;
 }
