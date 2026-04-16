@@ -1,3 +1,4 @@
+use crate::domain::DomainError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -12,14 +13,25 @@ pub struct User {
 }
 
 impl User {
-    pub fn new(username: String, email: String, password_hash: String) -> Self {
-        Self {
+    pub fn new(
+        username: String,
+        email: String,
+        password_hash: String,
+    ) -> Result<Self, DomainError> {
+        if username.is_empty() {
+            return Err(DomainError::Validation("username is empty".to_string()));
+        }
+        if email.is_empty() {
+            return Err(DomainError::Validation("email is empty".to_string()));
+        }
+
+        Ok(Self {
             id: Uuid::now_v7(),
             username,
             email,
             password_hash,
             created_at: Utc::now(),
-        }
+        })
     }
 }
 

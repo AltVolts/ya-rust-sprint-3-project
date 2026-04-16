@@ -17,9 +17,13 @@ where
         Self { post_repo }
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn create_post(&self, create: CreatePost, author_id: Uuid) -> Result<Post, AppError> {
         let post = Post::new(Uuid::now_v7(), create.title, create.content, author_id);
-        Ok(self.post_repo.create(post).await?)
+        let post = self.post_repo.create(post).await?;
+
+        tracing::debug!(post_id = %post.id, "post created in repository");
+        Ok(post)
     }
 
     pub async fn get_post(&self, post_id: Uuid) -> Result<Post, AppError> {
@@ -28,9 +32,12 @@ where
             .find_by_id(post_id)
             .await?
             .ok_or(DomainError::PostNotFound(post_id))?;
+
+        tracing::debug!(post_id = %post.id, "post retrieved from repository");
         Ok(post)
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn update_post(
         &self,
         post_id: Uuid,
@@ -53,9 +60,13 @@ where
         if let Some(content) = update.content {
             post.content = content;
         }
-        Ok(self.post_repo.update(post).await?)
+        let updated = self.post_repo.update(post).await?;
+
+        tracing::debug!(post_id = %updated.id, "post updated in repository");
+        Ok(self.post_repo.update(updated).await?)
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn delete_post(&self, post_id: Uuid, user_id: Uuid) -> Result<(), AppError> {
         let post = self
             .post_repo
@@ -66,10 +77,13 @@ where
         if post.author_id != user_id {
             return Err(DomainError::Forbidden { user_id, post_id }.into());
         }
+        let res = self.post_repo.delete(post_id).await?;
 
-        Ok(self.post_repo.delete(post_id).await?)
+        tracing::debug!(post_id = %post.id, "post deleted in repository");
+        Ok(res)
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn list_posts(
         &self,
         limit: i64,
@@ -77,6 +91,14 @@ where
     ) -> Result<crate::domain::PaginatedPosts, AppError> {
         let limit = limit.clamp(1, 100);
         let offset = offset.max(0);
-        Ok(self.post_repo.list_paginated(limit, offset).await?)
+        let result = self.post_repo.list_paginated(limit, offset).await?;
+
+        tracing::debug!(
+            limit,
+            offset,
+            total = result.total,
+            "posts listed from repository"
+        );
+        Ok(result)
     }
 }

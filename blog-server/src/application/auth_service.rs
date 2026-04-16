@@ -26,6 +26,7 @@ where
         &self.jwt_service
     }
 
+    #[warn(dead_code)]
     pub async fn get_user(&self, id: uuid::Uuid) -> Result<User, AppError> {
         self.repo
             .find_by_id(id)
@@ -35,16 +36,20 @@ where
             .map_err(AppError::from)
     }
 
-    #[instrument(skip(self))]
+    #[instrument(skip(self, password), fields(username))]
     pub async fn register(
         &self,
         username: String,
         email: String,
         password: String,
     ) -> Result<(User, String), AppError> {
+        if password.is_empty() {
+            return Err(DomainError::Validation("password is empty".to_string()).into());
+        }
         let hash = hash_password(&password).map_err(|err| AppError::Hash(err.to_string()))?;
-        let user = User::new(username, email.to_lowercase(), hash);
+        let user = User::new(username, email.to_lowercase(), hash)?;
         let user = self.repo.create(user).await.map_err(AppError::from)?;
+        tracing::debug!(user_id = %user.id, "user saved to database");
 
         let jwt_token = self
             .jwt_service

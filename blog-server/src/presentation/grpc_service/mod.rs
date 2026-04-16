@@ -7,9 +7,8 @@ use crate::domain;
 use crate::domain::{CreatePost, DomainError, PaginatedPosts, UpdatePost};
 use blog_proto::blog_service_server::BlogService as BlogServiceServer;
 use blog_proto::{
-    CreatePostRequest, DeletePostRequest, DeletePostResponse, GetPostRequest,
-    ListPostsRequest, ListPostsResponse, LoginRequest, LoginResponse, Post,
-    RegisterRequest, UpdatePostRequest, User,
+    CreatePostRequest, DeletePostRequest, DeletePostResponse, GetPostRequest, ListPostsRequest,
+    ListPostsResponse, LoginRequest, LoginResponse, Post, RegisterRequest, UpdatePostRequest, User,
 };
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
@@ -35,6 +34,7 @@ impl BlogServiceImpl {
 
 #[tonic::async_trait]
 impl BlogServiceServer for BlogServiceImpl {
+    #[tracing::instrument(skip(self, request), fields(username = request.get_ref().username))]
     async fn register(&self, request: Request<RegisterRequest>) -> Result<Response<User>, Status> {
         let req = request.into_inner();
 
@@ -44,6 +44,10 @@ impl BlogServiceServer for BlogServiceImpl {
             .await
             .map_err(|e| map_app_error(e))?;
 
+        tracing::info!(
+            user_id = %new_user.id,
+            "gRPC user registered"
+        );
         Ok(Response::new(User {
             id: new_user.id.to_string(),
             username: new_user.username,
@@ -51,6 +55,7 @@ impl BlogServiceServer for BlogServiceImpl {
         }))
     }
 
+    #[tracing::instrument(skip(self, request), fields(username = request.get_ref().username))]
     async fn login(
         &self,
         request: Request<LoginRequest>,
@@ -62,9 +67,14 @@ impl BlogServiceServer for BlogServiceImpl {
             .await
             .map_err(|e| map_app_error(e))?;
 
+        tracing::info!(
+            username = %&req.username,
+            "gRPC user login"
+        );
         Ok(Response::new(LoginResponse { access_token }))
     }
 
+    #[tracing::instrument(skip(self, request), fields(author_id = tracing::field::Empty))]
     async fn create_post(
         &self,
         request: Request<CreatePostRequest>,
@@ -105,6 +115,7 @@ impl BlogServiceServer for BlogServiceImpl {
         Ok(Response::new(Post::from(post)))
     }
 
+    #[tracing::instrument(skip(self, request), fields(post_id = request.get_ref().id))]
     async fn get_post(&self, request: Request<GetPostRequest>) -> Result<Response<Post>, Status> {
         let req = request.into_inner();
         let post_id =
@@ -118,6 +129,7 @@ impl BlogServiceServer for BlogServiceImpl {
         Ok(Response::new(Post::from(post)))
     }
 
+    #[tracing::instrument(skip(self, request), fields(post_id = request.get_ref().id, user_id = tracing::field::Empty))]
     async fn update_post(
         &self,
         request: Request<UpdatePostRequest>,
@@ -153,7 +165,7 @@ impl BlogServiceServer for BlogServiceImpl {
                 UpdatePost {
                     title: req.title,
                     content: req.content,
-                }
+                },
             )
             .await
             .map_err(|e| map_app_error(e))?;
@@ -161,6 +173,7 @@ impl BlogServiceServer for BlogServiceImpl {
         Ok(Response::new(Post::from(updated_post)))
     }
 
+    #[tracing::instrument(skip(self, request), fields(post_id = request.get_ref().id, user_id = tracing::field::Empty))]
     async fn delete_post(
         &self,
         request: Request<DeletePostRequest>,
@@ -193,9 +206,10 @@ impl BlogServiceServer for BlogServiceImpl {
             .await
             .map_err(|e| map_app_error(e))?;
 
-        Ok(Response::new(DeletePostResponse {success: true}))
+        Ok(Response::new(DeletePostResponse { success: true }))
     }
 
+    #[tracing::instrument(skip(self, request), fields(limit = request.get_ref().limit, offset = request.get_ref().offset))]
     async fn list_posts(
         &self,
         request: Request<ListPostsRequest>,
@@ -235,27 +249,62 @@ impl From<domain::Post> for Post {
 }
 
 fn map_app_error(err: AppError) -> Status {
-    match err {
-        AppError::Domain(DomainError::UserNotFound(msg)) => Status::not_found(msg),
+    use tracing::{error, warn};
+    match &err {
+        AppError::Domain(DomainError::UserNotFound(msg)) => {
+            warn!(%msg, "User not found");
+            Status::not_found(msg)
+        }
         AppError::Domain(DomainError::PostNotFound(id)) => {
+            warn!(%id, "Post not found");
             Status::not_found(format!("Post not found: {}", id))
         }
         AppError::Domain(DomainError::UserAlreadyExists(name)) => {
+            warn!(%name, "User already exists");
             Status::already_exists(format!("User '{}' already exists", name))
         }
         AppError::Domain(DomainError::InvalidCredentials) => {
+            warn!("Invalid credentials");
             Status::unauthenticated("Invalid username or password".to_string())
         }
-        AppError::Domain(DomainError::Validation(msg)) => Status::invalid_argument(msg),
-        AppError::Domain(DomainError::Forbidden { user_id, post_id }) => Status::permission_denied(
-            format!("User {} is not author of post {}", user_id, post_id),
-        ),
-        AppError::Domain(DomainError::Internal(msg)) => Status::internal(msg),
-        AppError::Unauthorized => Status::unauthenticated("Authentication required".to_string()),
-        AppError::Database(msg) => Status::internal(format!("Database error: {}", msg)),
-        AppError::Hash(msg) => Status::internal(format!("Hashing error: {}", msg)),
-        AppError::Jwt(msg) => Status::internal(format!("JWT error: {}", msg)),
-        AppError::Config(msg) => Status::internal(format!("Config error: {}", msg)),
-        AppError::Internal(msg) => Status::internal(msg),
+        AppError::Unauthorized => {
+            warn!("Unauthorized access");
+            Status::unauthenticated("Authentication required".to_string())
+        }
+        AppError::Domain(DomainError::Validation(msg)) => {
+            warn!(%msg, "Validation error"); // исправлено
+            Status::invalid_argument(msg.clone())
+        }
+        AppError::Domain(DomainError::Forbidden { user_id, post_id }) => {
+            warn!(%user_id, %post_id, "User is not author of post");
+            Status::permission_denied(format!(
+                "User {} is not author of post {}",
+                user_id, post_id
+            ))
+        }
+        AppError::Domain(DomainError::Internal(msg)) => {
+            error!(%msg, "Internal domain error");
+            Status::internal(msg.clone())
+        }
+        AppError::Database(msg) => {
+            error!(%msg, "Database error");
+            Status::internal(format!("Database error: {}", msg))
+        }
+        AppError::Hash(msg) => {
+            error!(%msg, "Hashing error");
+            Status::internal(format!("Hashing error: {}", msg))
+        }
+        AppError::Jwt(msg) => {
+            error!(%msg, "JWT error");
+            Status::internal(format!("JWT error: {}", msg))
+        }
+        AppError::Config(msg) => {
+            error!(%msg, "Config error");
+            Status::internal(format!("Config error: {}", msg))
+        }
+        AppError::Internal(msg) => {
+            error!(%msg, "Internal server error");
+            Status::internal(msg.clone())
+        }
     }
 }

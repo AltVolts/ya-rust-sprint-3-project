@@ -70,7 +70,6 @@ impl UserRepository for PostgresUserRepository {
             domain_err
         })?;
 
-        info!(user_id = %user.id, "user created");
         Ok(user)
     }
 

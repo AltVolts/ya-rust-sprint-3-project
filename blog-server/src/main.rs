@@ -8,7 +8,9 @@ use crate::presentation::http_handlers::auth::health;
 use crate::presentation::http_handlers::posts::{
     create_post, delete_post, get_post, list_posts, update_post,
 };
-use crate::presentation::{RequestIdMiddleware, TimingMiddleware, http_handlers, middleware, BlogServiceImpl};
+use crate::presentation::{
+    BlogServiceImpl, RequestIdMiddleware, TimingMiddleware, http_handlers, middleware,
+};
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{App, HttpServer, web};
@@ -70,10 +72,7 @@ async fn main() -> std::io::Result<()> {
                 Cors::default()
                     .allowed_origin(&cfg.cors_origin)
                     .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-                    .allowed_headers(vec![
-                        actix_web::http::header::CONTENT_TYPE,
-                        actix_web::http::header::AUTHORIZATION,
-                    ])
+                    .allow_any_header()
                     .supports_credentials()
                     .max_age(600),
             )
@@ -97,13 +96,13 @@ async fn main() -> std::io::Result<()> {
     .bind(http_addr)?
     .run();
 
-    let grpc_service = BlogServiceImpl::new(
-        Arc::new(grpc_auth_service),
-        Arc::new(grpc_blog_service),
-    );
+    let grpc_service =
+        BlogServiceImpl::new(Arc::new(grpc_auth_service), Arc::new(grpc_blog_service));
 
     let grpc_server = Server::builder()
-        .add_service(blog_proto::blog_service_server::BlogServiceServer::new(grpc_service))
+        .add_service(blog_proto::blog_service_server::BlogServiceServer::new(
+            grpc_service,
+        ))
         .serve(grpc_addr.parse().expect("Invalid gRPC address"));
 
     info!("→ gRPC server listening on http://{}", grpc_addr);
