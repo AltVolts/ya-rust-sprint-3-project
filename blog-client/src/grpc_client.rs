@@ -51,9 +51,9 @@ impl crate::TransportClient for GrpcClient {
     ) -> Result<AuthResponse, BlogClientError> {
         let request = Request::new(LoginRequest { username, password });
         let response = self.client.login(request).await?;
-        let token = response.into_inner().access_token;
+        let access_token = response.into_inner().access_token;
 
-        Ok(AuthResponse { token })
+        Ok(AuthResponse { access_token })
     }
 
     async fn create_post(

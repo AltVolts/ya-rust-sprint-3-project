@@ -35,7 +35,7 @@ pub struct RegisterResponse {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthResponse {
-    pub token: String,
+    pub access_token: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]

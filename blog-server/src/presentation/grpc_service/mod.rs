@@ -8,7 +8,8 @@ use crate::domain::{CreatePost, DomainError, PaginatedPosts, UpdatePost};
 use blog_proto::blog_service_server::BlogService as BlogServiceServer;
 use blog_proto::{
     CreatePostRequest, DeletePostRequest, DeletePostResponse, GetPostRequest, ListPostsRequest,
-    ListPostsResponse, LoginRequest, LoginResponse, Post, RegisterRequest, UpdatePostRequest, User,
+    ListPostsResponse, LoginRequest, LoginResponse, Post, RegisterRequest, RegisterResponse,
+    UpdatePostRequest, User,
 };
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
@@ -35,10 +36,13 @@ impl BlogServiceImpl {
 #[tonic::async_trait]
 impl BlogServiceServer for BlogServiceImpl {
     #[tracing::instrument(skip(self, request), fields(username = request.get_ref().username))]
-    async fn register(&self, request: Request<RegisterRequest>) -> Result<Response<User>, Status> {
+    async fn register(
+        &self,
+        request: Request<RegisterRequest>,
+    ) -> Result<Response<RegisterResponse>, Status> {
         let req = request.into_inner();
 
-        let (new_user, _) = self
+        let (new_user, token) = self
             .auth_serv
             .register(req.username, req.email, req.password)
             .await
@@ -48,10 +52,13 @@ impl BlogServiceServer for BlogServiceImpl {
             user_id = %new_user.id,
             "gRPC user registered"
         );
-        Ok(Response::new(User {
-            id: new_user.id.to_string(),
-            username: new_user.username,
-            email: new_user.email,
+        Ok(Response::new(RegisterResponse {
+            token,
+            user: Some(User {
+                id: new_user.id.to_string(),
+                username: new_user.username,
+                email: new_user.email,
+            }),
         }))
     }
 
@@ -80,12 +87,7 @@ impl BlogServiceServer for BlogServiceImpl {
         request: Request<CreatePostRequest>,
     ) -> Result<Response<Post>, Status> {
         let jwt_serv = self.auth_serv.jwt_service().clone();
-        let token_meta = request
-            .metadata()
-            .get("authorization")
-            .ok_or_else(|| Status::unauthenticated("Missing authorization header".to_string()))?
-            .to_str()
-            .map_err(|e| Status::unauthenticated(e.to_string()))?;
+        let token_meta = get_token_meta(&request)?;
 
         let token = token_meta
             .strip_prefix("Bearer ")
@@ -135,12 +137,7 @@ impl BlogServiceServer for BlogServiceImpl {
         request: Request<UpdatePostRequest>,
     ) -> Result<Response<Post>, Status> {
         let jwt_serv = self.auth_serv.jwt_service().clone();
-        let token_meta = request
-            .metadata()
-            .get("authorization")
-            .ok_or_else(|| Status::unauthenticated("Missing authorization header".to_string()))?
-            .to_str()
-            .map_err(|e| Status::unauthenticated(e.to_string()))?;
+        let token_meta = get_token_meta(&request)?;
 
         let token = token_meta
             .strip_prefix("Bearer ")
@@ -179,12 +176,7 @@ impl BlogServiceServer for BlogServiceImpl {
         request: Request<DeletePostRequest>,
     ) -> Result<Response<DeletePostResponse>, Status> {
         let jwt_serv = self.auth_serv.jwt_service().clone();
-        let token_meta = request
-            .metadata()
-            .get("authorization")
-            .ok_or_else(|| Status::unauthenticated("Missing authorization header".to_string()))?
-            .to_str()
-            .map_err(|e| Status::unauthenticated(e.to_string()))?;
+        let token_meta = get_token_meta(&request)?;
 
         let token = token_meta
             .strip_prefix("Bearer ")
@@ -246,6 +238,16 @@ impl From<domain::Post> for Post {
             updated_at: value.updated_at.timestamp(),
         }
     }
+}
+
+fn get_token_meta<T>(request: &Request<T>) -> Result<String, Status> {
+    let token_meta = request
+        .metadata()
+        .get("authorization")
+        .ok_or_else(|| Status::unauthenticated("Missing authorization header".to_string()))?
+        .to_str()
+        .map_err(|e| Status::unauthenticated(e.to_string()))?;
+    Ok(token_meta.to_string())
 }
 
 fn map_app_error(err: AppError) -> Status {
