@@ -1,6 +1,6 @@
 use crate::application::AppError;
 use crate::data::post_repository::PostRepository;
-use crate::domain::{CreatePost, DomainError, Post, UpdatePost};
+use crate::domain::{CreatePost, DomainError, PaginatedPosts, Post, UpdatePost};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -77,28 +77,24 @@ where
         if post.author_id != user_id {
             return Err(DomainError::Forbidden { user_id, post_id }.into());
         }
-        let res = self.post_repo.delete(post_id).await?;
+        self.post_repo.delete(post_id).await?;
 
         tracing::debug!(post_id = %post.id, "post deleted in repository");
-        Ok(res)
+        Ok(())
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn list_posts(
-        &self,
-        limit: i64,
-        offset: i64,
-    ) -> Result<crate::domain::PaginatedPosts, AppError> {
+    pub async fn list_posts(&self, limit: i64, offset: i64) -> Result<PaginatedPosts, AppError> {
         let limit = limit.clamp(1, 100);
         let offset = offset.max(0);
-        let result = self.post_repo.list_paginated(limit, offset).await?;
+        let post_list = self.post_repo.list_paginated(limit, offset).await?;
 
         tracing::debug!(
             limit,
             offset,
-            total = result.total,
+            total = post_list.total,
             "posts listed from repository"
         );
-        Ok(result)
+        Ok(post_list)
     }
 }

@@ -49,21 +49,17 @@ pub async fn list_posts(
     let list_parameters = payload.into_inner();
     let limit = list_parameters.limit;
     let offset = list_parameters.offset;
-    let post_list = service.list_posts(limit, offset).await?;
+    let paginated_posts = service.list_posts(limit, offset).await?;
 
     info!(
         request_id = %request_id(&req),
         limit = limit,
         offset = offset,
-        total = post_list.total,
+        total = paginated_posts.total,
         "posts_list retrieved via HTTP"
     );
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "posts": post_list.posts,
-        "total": post_list.total,
-        "limit": limit,
-        "offset": offset,
-    })))
+
+    Ok(HttpResponse::Ok().json(serde_json::json!(paginated_posts)))
 }
 
 pub async fn update_post(

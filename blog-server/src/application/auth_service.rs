@@ -26,7 +26,6 @@ where
         &self.jwt_service
     }
 
-    #[warn(dead_code)]
     pub async fn get_user(&self, id: uuid::Uuid) -> Result<User, AppError> {
         self.repo
             .find_by_id(id)
@@ -59,7 +58,7 @@ where
     }
 
     #[instrument(skip(self))]
-    pub async fn login(&self, username: &str, password: &str) -> Result<String, AppError> {
+    pub async fn login(&self, username: &str, password: &str) -> Result<(User, String), AppError> {
         let user = self
             .repo
             .find_by_username(username)
@@ -73,8 +72,10 @@ where
             return Err(AppError::Unauthorized);
         }
 
-        self.jwt_service
+        let jwt_token = self
+            .jwt_service
             .generate_token(user.id, &user.username)
-            .map_err(|err| AppError::Internal(err.to_string()))
+            .map_err(|err| AppError::Internal(err.to_string()))?;
+        Ok((user, jwt_token))
     }
 }

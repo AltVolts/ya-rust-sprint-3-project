@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use sqlx::postgres::PgRow;
 use sqlx::{PgPool, Row};
-use tracing::{error, info};
+use tracing::error;
 use uuid::Uuid;
 
 use crate::domain::{DomainError, user::User};

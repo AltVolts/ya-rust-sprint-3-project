@@ -1,7 +1,7 @@
 use crate::application::AppError;
 use crate::application::auth_service::AuthService;
 use crate::data::user_repository::PostgresUserRepository;
-use crate::domain::{LoginUser, RegisterUser};
+use crate::domain::{AuthResponse, LoginUser, RegisterResponse, RegisterUser};
 use crate::presentation::http_handlers::{HealthResponse, request_id};
 use actix_web::{HttpRequest, HttpResponse, Responder, Scope, get, post, web};
 use chrono::Utc;
@@ -26,7 +26,7 @@ pub async fn register(
     payload: web::Json<RegisterUser>,
 ) -> Result<impl Responder, AppError> {
     let register_data = payload.into_inner();
-    let (user, jwt_token) = service
+    let (user, token) = service
         .register(
             register_data.username,
             register_data.email,
@@ -39,10 +39,8 @@ pub async fn register(
         user_id = %user.id,
         "user registered"
     );
-    Ok(HttpResponse::Created().json(serde_json::json!({
-        "token": jwt_token,
-        "username": user.username,
-    })))
+    let resp = RegisterResponse { user, token };
+    Ok(HttpResponse::Created().json(serde_json::json!(resp)))
 }
 
 #[post("/login")]
@@ -52,7 +50,7 @@ pub async fn login(
     payload: web::Json<LoginUser>,
 ) -> Result<impl Responder, AppError> {
     let login_data = payload.into_inner();
-    let jwt_token = service
+    let (user, token) = service
         .login(&login_data.username, &login_data.password)
         .await?;
 
@@ -61,8 +59,7 @@ pub async fn login(
         username = %login_data.username,
         "user logged in"
     );
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "token": jwt_token,
-        "user": login_data.username,
-    })))
+
+    let resp = AuthResponse { user, token };
+    Ok(HttpResponse::Ok().json(serde_json::json!(resp)))
 }

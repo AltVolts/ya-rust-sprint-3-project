@@ -41,7 +41,8 @@ message LoginRequest {
 }
 
 message LoginResponse {
-  string access_token = 1;
+  string token = 1;
+  User user = 2;;
 }
 
 message CreatePostRequest {
@@ -75,6 +76,8 @@ message ListPostsRequest {
 message ListPostsResponse {
   repeated Post posts = 1;
   int64 total = 2;
+  int64 limit = 3;
+  int64 offset = 4;
 }
 
 message Post {

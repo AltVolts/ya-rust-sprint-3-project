@@ -121,6 +121,11 @@ impl PostRepository for PostgresPostRepository {
         .fetch_all(&mut *tx)
         .await?;
         tx.commit().await?;
-        Ok(PaginatedPosts { posts, total })
+        Ok(PaginatedPosts {
+            posts,
+            total,
+            limit,
+            offset,
+        })
     }
 }

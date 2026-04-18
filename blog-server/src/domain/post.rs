@@ -36,6 +36,8 @@ pub struct GetListPosts {
 pub struct PaginatedPosts {
     pub posts: Vec<Post>,
     pub total: i64,
+    pub limit: i64,
+    pub offset: i64,
 }
 
 #[derive(Debug, Clone, Deserialize)]

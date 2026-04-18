@@ -1,4 +1,4 @@
-use crate::dto::{AuthResponse, PaginatedPosts, Post, RegisterResponse};
+use crate::dto::{AuthResponse, PaginatedPosts, Post, RegisterResponse, User};
 use crate::error::BlogClientError;
 use blog_proto::blog_service_client::BlogServiceClient;
 use blog_proto::{
@@ -39,7 +39,7 @@ impl crate::TransportClient for GrpcClient {
         ))?;
 
         Ok(RegisterResponse {
-            user: grpc_user.into(),
+            user: User::from(grpc_user),
             token: grpc_body.token,
         })
     }
@@ -51,9 +51,16 @@ impl crate::TransportClient for GrpcClient {
     ) -> Result<AuthResponse, BlogClientError> {
         let request = Request::new(LoginRequest { username, password });
         let response = self.client.login(request).await?;
-        let access_token = response.into_inner().access_token;
 
-        Ok(AuthResponse { access_token })
+        let grpc_body = response.into_inner();
+        let grpc_user = grpc_body.user.ok_or(BlogClientError::InvalidResponse(
+            "User not found".to_string(),
+        ))?;
+
+        Ok(AuthResponse {
+            user: User::from(grpc_user),
+            token: grpc_body.token,
+        })
     }
 
     async fn create_post(
@@ -96,6 +103,8 @@ impl crate::TransportClient for GrpcClient {
         let posts_result = PaginatedPosts {
             posts,
             total: grpc_posts.total,
+            limit,
+            offset,
         };
         Ok(posts_result)
     }

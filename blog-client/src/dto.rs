@@ -2,6 +2,23 @@ use crate::error::BlogClientError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct User {
+    pub id: String,
+    pub username: String,
+    pub email: String,
+}
+
+impl From<blog_proto::User> for User {
+    fn from(value: blog_proto::User) -> Self {
+        Self {
+            id: value.id,
+            username: value.username,
+            email: value.email,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct RegisterUser {
     pub username: String,
@@ -9,10 +26,22 @@ pub struct RegisterUser {
     pub password: String,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct RegisterResponse {
+    pub user: User,
+    pub token: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct LoginUser {
     pub username: String,
     pub password: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct AuthResponse {
+    pub user: User,
+    pub token: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -28,24 +57,6 @@ pub struct UpdatePost {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct RegisterResponse {
-    pub user: User,
-    pub token: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct AuthResponse {
-    pub access_token: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct User {
-    pub id: String,
-    pub username: String,
-    pub email: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
 pub struct Post {
     pub id: String,
     pub title: String,
@@ -53,12 +64,6 @@ pub struct Post {
     pub author_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct PaginatedPosts {
-    pub posts: Vec<Post>,
-    pub total: i64,
 }
 
 impl TryFrom<blog_proto::Post> for Post {
@@ -84,12 +89,10 @@ impl TryFrom<blog_proto::Post> for Post {
     }
 }
 
-impl From<blog_proto::User> for User {
-    fn from(value: blog_proto::User) -> Self {
-        Self {
-            id: value.id,
-            username: value.username,
-            email: value.email,
-        }
-    }
+#[derive(Debug, Clone, Deserialize)]
+pub struct PaginatedPosts {
+    pub posts: Vec<Post>,
+    pub total: i64,
+    pub limit: i64,
+    pub offset: i64,
 }

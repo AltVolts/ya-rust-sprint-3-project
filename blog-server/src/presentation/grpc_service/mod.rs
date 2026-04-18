@@ -4,7 +4,7 @@ use crate::application::blog_service::BlogService;
 use crate::data::post_repository::PostgresPostRepository;
 use crate::data::user_repository::PostgresUserRepository;
 use crate::domain;
-use crate::domain::{CreatePost, DomainError, PaginatedPosts, UpdatePost};
+use crate::domain::{CreatePost, DomainError, UpdatePost};
 use blog_proto::blog_service_server::BlogService as BlogServiceServer;
 use blog_proto::{
     CreatePostRequest, DeletePostRequest, DeletePostResponse, GetPostRequest, ListPostsRequest,
@@ -46,7 +46,7 @@ impl BlogServiceServer for BlogServiceImpl {
             .auth_serv
             .register(req.username, req.email, req.password)
             .await
-            .map_err(|e| map_app_error(e))?;
+            .map_err(map_app_error)?;
 
         tracing::info!(
             user_id = %new_user.id,
@@ -54,11 +54,7 @@ impl BlogServiceServer for BlogServiceImpl {
         );
         Ok(Response::new(RegisterResponse {
             token,
-            user: Some(User {
-                id: new_user.id.to_string(),
-                username: new_user.username,
-                email: new_user.email,
-            }),
+            user: Some(User::from(new_user)),
         }))
     }
 
@@ -68,17 +64,20 @@ impl BlogServiceServer for BlogServiceImpl {
         request: Request<LoginRequest>,
     ) -> Result<Response<LoginResponse>, Status> {
         let req = request.into_inner();
-        let access_token = self
+        let (user, token) = self
             .auth_serv
             .login(&req.username, &req.password)
             .await
-            .map_err(|e| map_app_error(e))?;
+            .map_err(map_app_error)?;
 
         tracing::info!(
             username = %&req.username,
             "gRPC user login"
         );
-        Ok(Response::new(LoginResponse { access_token }))
+        Ok(Response::new(LoginResponse {
+            token,
+            user: Some(User::from(user)),
+        }))
     }
 
     #[tracing::instrument(skip(self, request), fields(author_id = tracing::field::Empty))]
@@ -112,7 +111,7 @@ impl BlogServiceServer for BlogServiceImpl {
                 author_id,
             )
             .await
-            .map_err(|e| map_app_error(e))?;
+            .map_err(map_app_error)?;
 
         Ok(Response::new(Post::from(post)))
     }
@@ -126,7 +125,7 @@ impl BlogServiceServer for BlogServiceImpl {
             .blog_serv
             .get_post(post_id)
             .await
-            .map_err(|e| map_app_error(e))?;
+            .map_err(map_app_error)?;
 
         Ok(Response::new(Post::from(post)))
     }
@@ -165,7 +164,7 @@ impl BlogServiceServer for BlogServiceImpl {
                 },
             )
             .await
-            .map_err(|e| map_app_error(e))?;
+            .map_err(map_app_error)?;
 
         Ok(Response::new(Post::from(updated_post)))
     }
@@ -196,7 +195,7 @@ impl BlogServiceServer for BlogServiceImpl {
         self.blog_serv
             .delete_post(post_id, user_id)
             .await
-            .map_err(|e| map_app_error(e))?;
+            .map_err(map_app_error)?;
 
         Ok(Response::new(DeletePostResponse { success: true }))
     }
@@ -212,18 +211,18 @@ impl BlogServiceServer for BlogServiceImpl {
             .blog_serv
             .list_posts(req.limit, req.offset)
             .await
-            .map_err(|e| map_app_error(e))?;
+            .map_err(map_app_error)?;
 
-        Ok(Response::new(ListPostsResponse::from(paginated_posts)))
-    }
-}
-
-impl From<PaginatedPosts> for ListPostsResponse {
-    fn from(value: PaginatedPosts) -> Self {
-        Self {
-            posts: value.posts.into_iter().map(|post| post.into()).collect(),
-            total: value.total,
-        }
+        Ok(Response::new(ListPostsResponse {
+            posts: paginated_posts
+                .posts
+                .into_iter()
+                .map(|post| post.into())
+                .collect(),
+            total: paginated_posts.total,
+            limit: req.limit,
+            offset: req.offset,
+        }))
     }
 }
 
@@ -236,6 +235,16 @@ impl From<domain::Post> for Post {
             author_id: value.author_id.to_string(),
             created_at: value.created_at.timestamp(),
             updated_at: value.updated_at.timestamp(),
+        }
+    }
+}
+
+impl From<domain::User> for User {
+    fn from(value: domain::User) -> Self {
+        Self {
+            id: value.id.to_string(),
+            username: value.username,
+            email: value.email,
         }
     }
 }

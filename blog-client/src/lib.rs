@@ -58,7 +58,7 @@ impl BlogClient {
         password: String,
     ) -> Result<AuthResponse, BlogClientError> {
         let response = self.client.login(username, password).await?;
-        self.set_token(response.access_token.clone());
+        self.set_token(response.token.clone());
         Ok(response)
     }
 
