@@ -52,6 +52,7 @@ impl BlogServiceServer for BlogServiceImpl {
             user_id = %new_user.id,
             "gRPC user registered"
         );
+
         Ok(Response::new(RegisterResponse {
             token,
             user: Some(User::from(new_user)),
@@ -74,6 +75,7 @@ impl BlogServiceServer for BlogServiceImpl {
             username = %&req.username,
             "gRPC user login"
         );
+
         Ok(Response::new(LoginResponse {
             token,
             user: Some(User::from(user)),
@@ -113,6 +115,12 @@ impl BlogServiceServer for BlogServiceImpl {
             .await
             .map_err(map_app_error)?;
 
+        tracing::info!(
+            user_id = %author_id,
+            post_id = %post.id,
+            "gRPC post created"
+        );
+
         Ok(Response::new(Post::from(post)))
     }
 
@@ -126,6 +134,11 @@ impl BlogServiceServer for BlogServiceImpl {
             .get_post(post_id)
             .await
             .map_err(map_app_error)?;
+
+        tracing::info!(
+            post_id = %post_id,
+            "gRPC post retrieved"
+        );
 
         Ok(Response::new(Post::from(post)))
     }
@@ -166,6 +179,12 @@ impl BlogServiceServer for BlogServiceImpl {
             .await
             .map_err(map_app_error)?;
 
+        tracing::info!(
+            user_id = %user_id,
+            post_id = %post_id,
+            "gRPC post updated"
+        );
+
         Ok(Response::new(Post::from(updated_post)))
     }
 
@@ -197,6 +216,12 @@ impl BlogServiceServer for BlogServiceImpl {
             .await
             .map_err(map_app_error)?;
 
+        tracing::info!(
+            user_id = %user_id,
+            post_id = %post_id,
+            "gRPC post deleted"
+        );
+
         Ok(Response::new(DeletePostResponse { success: true }))
     }
 
@@ -212,6 +237,13 @@ impl BlogServiceServer for BlogServiceImpl {
             .list_posts(req.limit, req.offset)
             .await
             .map_err(map_app_error)?;
+
+        tracing::info!(
+            limit = req.limit,
+            offset = req.offset,
+            total = paginated_posts.total,
+            "gRPC posts list retrieved"
+        );
 
         Ok(Response::new(ListPostsResponse {
             posts: paginated_posts

@@ -35,7 +35,7 @@ impl BlogClient {
             token: None,
         })
     }
-    fn set_token(&mut self, token: String) {
+    pub fn set_token(&mut self, token: String) {
         self.token = Some(token);
     }
     fn get_token(&self) -> Option<String> {

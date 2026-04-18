@@ -1,3 +1,4 @@
+mod grpc;
 pub mod jwt;
 mod request_id;
 mod timing;

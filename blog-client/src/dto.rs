@@ -1,8 +1,10 @@
 use crate::error::BlogClientError;
 use chrono::{DateTime, Utc};
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Display)]
+#[display("{username} ({email})")]
 pub struct User {
     pub id: String,
     pub username: String,
@@ -20,7 +22,7 @@ impl From<blog_proto::User> for User {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct RegisterUser {
+pub struct RegisterRequest {
     pub username: String,
     pub email: String,
     pub password: String,
@@ -33,7 +35,7 @@ pub struct RegisterResponse {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct LoginUser {
+pub struct AuthRequest {
     pub username: String,
     pub password: String,
 }
@@ -56,7 +58,17 @@ pub struct UpdatePost {
     pub content: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Display)]
+#[display(
+    "\
+ID: {id}
+Title: {title}
+Content: {content}
+Author ID: {author_id}
+Created at: {created_at}
+Updated at: {updated_at}
+"
+)]
 pub struct Post {
     pub id: String,
     pub title: String,

@@ -1,0 +1,2 @@
+[alias]
+blog-cli = "run --release -p blog-cli --"

@@ -19,6 +19,7 @@ use infrastructure::database;
 use infrastructure::logging;
 use std::sync::Arc;
 use tonic::transport::Server;
+
 use tracing::info;
 
 mod application;

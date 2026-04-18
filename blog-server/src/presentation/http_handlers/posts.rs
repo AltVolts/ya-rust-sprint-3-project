@@ -44,7 +44,7 @@ pub async fn get_post(
 pub async fn list_posts(
     req: HttpRequest,
     service: web::Data<BlogService<PostgresPostRepository>>,
-    payload: web::Json<GetListPosts>,
+    payload: web::Query<GetListPosts>,
 ) -> Result<HttpResponse, AppError> {
     let list_parameters = payload.into_inner();
     let limit = list_parameters.limit;

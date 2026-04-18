@@ -1,6 +1,6 @@
 use crate::TransportClient;
 use crate::dto::{
-    AuthResponse, CreatePost, LoginUser, PaginatedPosts, Post, RegisterResponse, RegisterUser,
+    AuthRequest, AuthResponse, CreatePost, PaginatedPosts, Post, RegisterRequest, RegisterResponse,
     UpdatePost,
 };
 use crate::error::BlogClientError;
@@ -32,7 +32,7 @@ impl TransportClient for HttpClient {
         password: String,
     ) -> Result<RegisterResponse, BlogClientError> {
         let url = format!("{}/auth/register", self.base_url.trim_end_matches('/'));
-        let req_body = RegisterUser {
+        let req_body = RegisterRequest {
             username,
             email,
             password,
@@ -50,7 +50,7 @@ impl TransportClient for HttpClient {
         password: String,
     ) -> Result<AuthResponse, BlogClientError> {
         let url = format!("{}/auth/login", self.base_url.trim_end_matches('/'));
-        let req_body = LoginUser { username, password };
+        let req_body = AuthRequest { username, password };
         let response = self.client.post(url).json(&req_body).send().await?;
         let response = response.error_for_status_blog().await?;
         let body: AuthResponse = response.json().await?;
