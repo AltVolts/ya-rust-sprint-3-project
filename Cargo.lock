@@ -478,6 +478,7 @@ name = "blog-client"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "blog-proto",
  "chrono",
  "prost 0.14.3",
@@ -2568,6 +2569,7 @@ dependencies = [
  "rustls-platform-verifier",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "sync_wrapper 1.0.2",
  "tokio",
  "tokio-rustls",
