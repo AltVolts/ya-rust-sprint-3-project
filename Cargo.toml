@@ -7,3 +7,7 @@ members = [
     "blog-wasm",
     "blog-proto",
 ]
+
+[profile.release]
+opt-level = "s"
+lto = true

@@ -3,7 +3,7 @@ use crate::application::blog_service::BlogService;
 use crate::data::post_repository::PostgresPostRepository;
 use crate::data::user_repository::PostgresUserRepository;
 use crate::infrastructure::Config;
-use crate::infrastructure::security::JwtService;
+use crate::infrastructure::security::{configure_cors, JwtService};
 use crate::presentation::http_handlers::auth::health;
 use crate::presentation::http_handlers::posts::{
     create_post, delete_post, get_post, list_posts, update_post,
@@ -65,18 +65,12 @@ async fn main() -> std::io::Result<()> {
     let grpc_blog_service = blog_service.clone();
 
     let http_server = HttpServer::new(move || {
+        let cors = configure_cors();
         App::new()
             .app_data(jwt_service_data.clone())
             .app_data(auth_service_data.clone())
             .app_data(blog_service_data.clone())
-            .wrap(
-                Cors::default()
-                    .allowed_origin(&cfg.cors_origin)
-                    .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-                    .allow_any_header()
-                    .supports_credentials()
-                    .max_age(600),
-            )
+            .wrap(cors)
             .wrap(TimingMiddleware)
             .wrap(RequestIdMiddleware)
             .wrap(Logger::default())

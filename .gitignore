@@ -33,3 +33,4 @@ debug/
 *.dSYM/
 
 **/.sqlx/
+/blog-wasm/dist/

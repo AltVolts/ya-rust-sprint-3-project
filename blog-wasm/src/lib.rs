@@ -1,14 +1,17 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+#![recursion_limit = "1024"]
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+use wasm_bindgen::prelude::*;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+mod app;
+mod api;
+mod types;
+mod components;
+
+pub use app::BlogApp;
+
+#[wasm_bindgen(start)]
+pub fn run_app() {
+    wasm_logger::init(wasm_logger::Config::default());
+    console_error_panic_hook::set_once();
+    yew::Renderer::<BlogApp>::new().render();
 }

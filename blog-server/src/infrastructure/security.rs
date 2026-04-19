@@ -1,3 +1,5 @@
+use std::env;
+use actix_cors::Cors;
 use argon2::{
     Argon2,
     password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
@@ -78,3 +80,24 @@ pub fn verify_password(password: &str, hash: &str) -> Result<bool, argon2::passw
     let argon2 = Argon2::default();
     Ok(argon2.verify_password(password.as_bytes(), &parsed).is_ok())
 }
+
+pub fn configure_cors() -> Cors {
+    let allowed_origins: Vec<String> = env::var("CORS_ORIGIN")
+        .unwrap_or_else(|_| "http://localhost:3000".to_string())
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .collect();
+
+    let mut cors = Cors::default()
+        .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+        .allow_any_header()
+        .supports_credentials()
+        .expose_headers(vec!["X-Total-Count"])
+        .max_age(3600);
+    
+    for origin in allowed_origins {
+        cors = cors.allowed_origin(&origin);
+    }
+
+    cors
+} 

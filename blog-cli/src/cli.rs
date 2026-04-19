@@ -1,61 +1,67 @@
 use clap::{Parser, Subcommand};
 
-#[derive(Parser)]
-#[command(name = "blog-cli")]
-#[command(about = "CLI для управления блогом", long_about = None)]
+#[derive(Parser, Debug)]
+#[command(name = "blog-cli", about = "CLI для управления блогом", long_about = None)]
 pub struct Cli {
-    #[arg(long, global = true)]
+    #[arg(short, long, global = true, help = "Иcпользовать grpc протокол")]
     pub grpc: bool,
 
-    #[arg(long, global = true)]
+    #[arg(short, long, global = true, help = "Url aдрес сервера")]
     pub server: Option<String>,
 
     #[command(subcommand)]
     pub command: Commands,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 pub enum Commands {
+    /// Регистрация нового пользователя
     Register {
-        #[arg(long)]
+        #[arg(long, help = "Имя пользователя")]
         username: String,
-        #[arg(long)]
+        #[arg(long, help = "Электронная почта")]
         email: String,
-        #[arg(long)]
+        #[arg(long, help = "Пароль")]
         password: String,
     },
+    /// Вход в систему (получение токена)
     Login {
-        #[arg(long)]
+        #[arg(long, help = "Имя пользователя")]
         username: String,
-        #[arg(long)]
+        #[arg(long, help = "Пароль")]
         password: String,
     },
+    /// Создание нового поста
     Create {
-        #[arg(long)]
+        #[arg(long, help = "Заголовок поста")]
         title: String,
-        #[arg(long)]
+        #[arg(long, help = "Содержимое поста")]
         content: String,
     },
+    /// Получение поста по ID
     Get {
-        #[arg(long)]
+        #[arg(long, help = "Идентификатор поста")]
         id: String,
     },
+    /// Обновление существующего поста
     Update {
-        #[arg(long)]
+        #[arg(long, help = "Идентификатор поста")]
         id: String,
-        #[arg(long)]
+        #[arg(long, help = "Новый заголовок")]
         title: Option<String>,
-        #[arg(long)]
+        #[arg(long, help = "Новое содержимое")]
         content: Option<String>,
     },
+    /// Удаление поста по ID
     Delete {
-        #[arg(long)]
+        #[arg(long, help = "Идентификатор поста")]
         id: String,
     },
+    /// Получение списка постов с пагинацией
     List {
-        #[arg(long, default_value_t = 10)]
+        #[arg(long, default_value_t = 10, help = "Максимальное количество постов")]
         limit: i64,
-        #[arg(long, default_value_t = 0)]
+        #[arg(long, default_value_t = 0, help = "Смещение для пагинации")]
         offset: i64,
     },
 }
