@@ -1,7 +1,7 @@
-use yew::prelude::*;
 use crate::api;
 use crate::types::User;
 use web_sys::HtmlInputElement;
+use yew::prelude::*;
 
 #[derive(Properties, PartialEq)]
 pub struct Props {

@@ -3,7 +3,7 @@ use crate::application::blog_service::BlogService;
 use crate::data::post_repository::PostgresPostRepository;
 use crate::data::user_repository::PostgresUserRepository;
 use crate::infrastructure::Config;
-use crate::infrastructure::security::{configure_cors, JwtService};
+use crate::infrastructure::security::{JwtService, configure_cors};
 use crate::presentation::http_handlers::auth::health;
 use crate::presentation::http_handlers::posts::{
     create_post, delete_post, get_post, list_posts, update_post,

@@ -1,7 +1,7 @@
+use crate::types::*;
 use gloo_net::http::{Request, Response};
 use gloo_storage::{LocalStorage, Storage};
 use serde_json::json;
-use crate::types::*;
 use wasm_bindgen::JsValue;
 
 const API_BASE_URL: &str = "http://localhost:3000/api";
@@ -15,7 +15,7 @@ pub fn load_token() -> Option<String> {
 }
 
 pub fn remove_token() {
-    let _ = LocalStorage::delete("blog_token");
+    LocalStorage::delete("blog_token");
 }
 
 async fn send_request(
@@ -35,23 +35,25 @@ async fn send_request(
 
     let mut builder_with_headers = builder;
     if let Some(tok) = token {
-        builder_with_headers = builder_with_headers.header("Authorization", &format!("Bearer {}", tok));
+        builder_with_headers =
+            builder_with_headers.header("Authorization", &format!("Bearer {}", tok));
     }
     builder_with_headers = builder_with_headers.header("Content-Type", "application/json");
 
     let request = match method {
-        "GET" | "HEAD" => {
-            builder_with_headers.body(JsValue::undefined())
-                .map_err(|e| ApiError::ServerError(e.to_string()))?
-        }
+        "GET" | "HEAD" => builder_with_headers
+            .body(JsValue::undefined())
+            .map_err(|e| ApiError::ServerError(e.to_string()))?,
         _ => {
             let body_str = body.unwrap_or_default();
-            builder_with_headers.body(body_str)
+            builder_with_headers
+                .body(body_str)
                 .map_err(|e| ApiError::ServerError(e.to_string()))?
         }
     };
 
-    let response = request.send()
+    let response = request
+        .send()
         .await
         .map_err(|e| ApiError::ServerError(e.to_string()))?;
 
@@ -59,10 +61,12 @@ async fn send_request(
         Ok(response)
     } else {
         let status = response.status();
-        let text = response.text()
-            .await
-            .unwrap_or_else(|_| String::new());
-        let err_msg = if !text.is_empty() { text } else { status.to_string() };
+        let text = response.text().await.unwrap_or_else(|_| String::new());
+        let err_msg = if !text.is_empty() {
+            text
+        } else {
+            status.to_string()
+        };
         match status {
             401 => Err(ApiError::Unauthorized),
             403 => Err(ApiError::Forbidden),
@@ -74,43 +78,71 @@ async fn send_request(
     }
 }
 
-pub async fn register(username: String, email: String, password: String) -> Result<AuthResponse, ApiError> {
+pub async fn register(
+    username: String,
+    email: String,
+    password: String,
+) -> Result<AuthResponse, ApiError> {
     let body = json!({ "username": username, "email": email, "password": password });
-    let body_str = serde_json::to_string(&body).map_err(|e| ApiError::ServerError(e.to_string()))?;
+    let body_str =
+        serde_json::to_string(&body).map_err(|e| ApiError::ServerError(e.to_string()))?;
     let response = send_request("POST", "/auth/register", Some(body_str), None).await?;
-    let auth_resp = response.json().await.map_err(|e| ApiError::ServerError(e.to_string()))?;
+    let auth_resp = response
+        .json()
+        .await
+        .map_err(|e| ApiError::ServerError(e.to_string()))?;
     Ok(auth_resp)
 }
 
 pub async fn login(username: String, password: String) -> Result<AuthResponse, ApiError> {
     let body = json!({ "username": username, "password": password });
-    let body_str = serde_json::to_string(&body).map_err(|e| ApiError::ServerError(e.to_string()))?;
+    let body_str =
+        serde_json::to_string(&body).map_err(|e| ApiError::ServerError(e.to_string()))?;
     let response = send_request("POST", "/auth/login", Some(body_str), None).await?;
-    let auth_resp = response.json().await.map_err(|e| ApiError::ServerError(e.to_string()))?;
+    let auth_resp = response
+        .json()
+        .await
+        .map_err(|e| ApiError::ServerError(e.to_string()))?;
     Ok(auth_resp)
 }
 
 pub async fn get_posts(limit: i64, offset: i64) -> Result<PostsListResponse, ApiError> {
     let url = format!("/posts?limit={}&offset={}", limit, offset);
     let response = send_request("GET", &url, None, None).await?;
-    let posts_resp = response.json().await.map_err(|e| ApiError::ServerError(e.to_string()))?;
+    let posts_resp = response
+        .json()
+        .await
+        .map_err(|e| ApiError::ServerError(e.to_string()))?;
     Ok(posts_resp)
 }
 
 pub async fn create_post(token: &str, title: String, content: String) -> Result<Post, ApiError> {
     let body = CreatePostRequest { title, content };
-    let body_str = serde_json::to_string(&body).map_err(|e| ApiError::ServerError(e.to_string()))?;
+    let body_str =
+        serde_json::to_string(&body).map_err(|e| ApiError::ServerError(e.to_string()))?;
     let response = send_request("POST", "/posts", Some(body_str), Some(token)).await?;
-    let post = response.json().await.map_err(|e| ApiError::ServerError(e.to_string()))?;
+    let post = response
+        .json()
+        .await
+        .map_err(|e| ApiError::ServerError(e.to_string()))?;
     Ok(post)
 }
 
-pub async fn update_post(token: &str, post_id: String, title: String, content: String) -> Result<Post, ApiError> {
+pub async fn update_post(
+    token: &str,
+    post_id: String,
+    title: String,
+    content: String,
+) -> Result<Post, ApiError> {
     let body = UpdatePostRequest { title, content };
-    let body_str = serde_json::to_string(&body).map_err(|e| ApiError::ServerError(e.to_string()))?;
+    let body_str =
+        serde_json::to_string(&body).map_err(|e| ApiError::ServerError(e.to_string()))?;
     let url = format!("/posts/{}", post_id);
     let response = send_request("PUT", &url, Some(body_str), Some(token)).await?;
-    let post = response.json().await.map_err(|e| ApiError::ServerError(e.to_string()))?;
+    let post = response
+        .json()
+        .await
+        .map_err(|e| ApiError::ServerError(e.to_string()))?;
     Ok(post)
 }
 
@@ -120,6 +152,8 @@ pub async fn delete_post(token: &str, post_id: String) -> Result<(), ApiError> {
     if response.status() == 204 {
         Ok(())
     } else {
-        Err(ApiError::ServerError("Неожиданный ответ при удалении".into()))
+        Err(ApiError::ServerError(
+            "Неожиданный ответ при удалении".into(),
+        ))
     }
 }

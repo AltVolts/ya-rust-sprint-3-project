@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use sqlx::postgres::PgRow;
 use sqlx::{PgPool, Row};
 use tracing::error;
-use uuid::Uuid;
 
 use crate::domain::{DomainError, user::User};
 
@@ -22,7 +21,6 @@ fn map_row(row: PgRow) -> Result<User, DomainError> {
 pub trait UserRepository: Send + Sync {
     async fn create(&self, user: User) -> Result<User, DomainError>;
     async fn find_by_username(&self, username: &str) -> Result<Option<User>, DomainError>;
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError>;
 }
 
 #[derive(Clone)]
@@ -86,25 +84,6 @@ impl UserRepository for PostgresUserRepository {
         .await
         .map_err(|e| {
             error!("failed to find user by username {}: {}", username, e);
-            DomainError::Internal(format!("database error: {}", e))
-        })?;
-
-        row.map(map_row).transpose()
-    }
-
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError> {
-        let row = sqlx::query(
-            r#"
-            SELECT id, username, email, password_hash, created_at
-            FROM users
-            WHERE id = $1
-            "#,
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| {
-            error!("failed to find user by id {}: {}", id, e);
             DomainError::Internal(format!("database error: {}", e))
         })?;
 

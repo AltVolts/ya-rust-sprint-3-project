@@ -217,21 +217,21 @@ impl Component for BlogApp {
             let post_title = post.title.clone();
             let post_content = post.content.clone();
             html! {
-        <div>
-            <h3>{"Редактирование поста"}</h3>
-            <PostForm
-                on_submit={move |(title, content)| {
-                    let post_id = post_id.clone(); // клонируем перед использованием
-                    update_cb.emit((post_id, title, content))
-                }}
-                button_label="Сохранить изменения"
-                initial_title={Some(post_title)}
-                initial_content={Some(post_content)}
-            />
-            <button onclick={clear_edit_cb}>{"Отмена"}</button>
-            <hr />
-        </div>
-    }
+                <div>
+                    <h3>{"Редактирование поста"}</h3>
+                    <PostForm
+                        on_submit={move |(title, content)| {
+                            let post_id = post_id.clone(); // клонируем перед использованием
+                            update_cb.emit((post_id, title, content))
+                        }}
+                        button_label="Сохранить изменения"
+                        initial_title={Some(post_title)}
+                        initial_content={Some(post_content)}
+                    />
+                    <button onclick={clear_edit_cb}>{"Отмена"}</button>
+                    <hr />
+                </div>
+            }
         } else {
             html! {}
         };

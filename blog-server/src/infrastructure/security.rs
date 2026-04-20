@@ -1,4 +1,3 @@
-use std::env;
 use actix_cors::Cors;
 use argon2::{
     Argon2,
@@ -8,6 +7,7 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
+use std::env;
 use uuid::Uuid;
 
 const TOKEN_LIFETIME_HOURS: i64 = 24;
@@ -94,10 +94,10 @@ pub fn configure_cors() -> Cors {
         .supports_credentials()
         .expose_headers(vec!["X-Total-Count"])
         .max_age(3600);
-    
+
     for origin in allowed_origins {
         cors = cors.allowed_origin(&origin);
     }
 
     cors
-} 
+}

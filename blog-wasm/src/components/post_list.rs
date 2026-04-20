@@ -1,6 +1,6 @@
-use yew::prelude::*;
 use crate::types::Post;
-use chrono::{Local}; // возможно, уже есть импорт; если нет — добавить
+use chrono::Local;
+use yew::prelude::*; // возможно, уже есть импорт; если нет — добавить
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct Props {

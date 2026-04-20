@@ -26,15 +26,6 @@ where
         &self.jwt_service
     }
 
-    pub async fn get_user(&self, id: uuid::Uuid) -> Result<User, AppError> {
-        self.repo
-            .find_by_id(id)
-            .await
-            .map_err(AppError::from)?
-            .ok_or_else(|| DomainError::UserNotFound(format!("user {}", id)))
-            .map_err(AppError::from)
-    }
-
     #[instrument(skip(self, password), fields(username))]
     pub async fn register(
         &self,

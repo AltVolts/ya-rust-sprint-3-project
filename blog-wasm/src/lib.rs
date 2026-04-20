@@ -2,10 +2,10 @@
 
 use wasm_bindgen::prelude::*;
 
-mod app;
 mod api;
-mod types;
+mod app;
 mod components;
+mod types;
 
 pub use app::BlogApp;
 

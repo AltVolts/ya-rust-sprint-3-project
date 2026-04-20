@@ -7,7 +7,6 @@ pub struct Config {
     pub port: u16,
     pub grpc_port: u16,
     pub jwt_secret: String,
-    pub cors_origin: String,
 }
 
 impl Config {
@@ -21,7 +20,6 @@ impl Config {
             .unwrap_or_else(|_| "50051".into())
             .parse()?;
         let jwt_secret = std::env::var("JWT_SECRET")?;
-        let cors_origin = std::env::var("CORS_ORIGIN").unwrap_or_else(|_| "*".into());
 
         Ok(Self {
             database_url,
@@ -29,7 +27,6 @@ impl Config {
             port,
             grpc_port,
             jwt_secret,
-            cors_origin,
         })
     }
 }
