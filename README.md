@@ -47,7 +47,7 @@ blog-project/
 Данные переменные используется как в коде Rust на этапе инициализации программ, так и в docker compose файле для инициализации БД.
 Генерация jwt токенов в коде сервера основывается на значение ключа из .env.
 
-## Пример команд и порядок запуска (из корня проекта):
+## Пример команд (из корня проекта):
 ### 1) БД: 
 ```bash 
   docker compose up -d
@@ -73,4 +73,16 @@ blog-project/
   cd blog-wasm; trunk serve --open     # для PowerShell
 ```
 
-#### После запуска frontend приложения будет доступно по адресу http://localhost:8080
+
+
+
+## Порядок запуска
+
+1. Клонируем проект ```git clone git@github.com:AltVolts/ya-rust-sprint-3-project.git```
+2. Создаем .env файл на основе .env.example ```cp .env.example .env```
+3. Редактируем ```.env``` файл
+4. Запускаем бд ```docker compose up -d```
+5. Билдим проект ```cargo build --workspace```
+6. Запускаем сервер ```cargo server```
+7. Запускаем trunk сервер с приложением ```cd blog-wasm; trunk serve --open ```. После запуска frontend приложение будет доступно по адресу http://localhost:8080
+8. Используем cli программу как ```cargo blog-cli <command> [<options>]```
