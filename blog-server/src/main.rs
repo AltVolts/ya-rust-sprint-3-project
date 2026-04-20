@@ -11,7 +11,6 @@ use crate::presentation::http_handlers::posts::{
 use crate::presentation::{
     BlogServiceImpl, RequestIdMiddleware, TimingMiddleware, http_handlers, middleware,
 };
-use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{App, HttpServer, web};
 use actix_web_httpauth::middleware::HttpAuthentication;
