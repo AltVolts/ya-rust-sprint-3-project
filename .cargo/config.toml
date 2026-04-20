@@ -1,6 +1,6 @@
 [alias]
-blog-cli = "run --release -p blog-cli --"
-server = "run --release -p blog-server"
+blog-cli = "run -p blog-cli --"
+server = "run -p blog-server"
 
 [env]
 SQLX_OFFLINE = "true"
